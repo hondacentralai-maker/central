@@ -4,17 +4,16 @@ import {
   Search, 
   Phone, 
   CreditCard, 
-  X, 
+  ArrowRight, 
   UserPlus, 
   CheckCircle2, 
   Clock, 
-  AlertCircle, 
   DollarSign, 
   Share2, 
   Calendar,
-  Smartphone
+  Smartphone,
+  ChevronLeft
 } from 'lucide-react';
-import { Customer } from '../types';
 
 interface CustomersPageProps {
   onDirectCollect?: (data: any) => void;
@@ -51,7 +50,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
   const handlePayInstallment = (contractIndex: number, instIndex: number) => {
     if (!selectedCustomer) return;
 
-    // Clone and update state
     const updatedCust = { ...selectedCustomer };
     const contract = updatedCust.contracts[contractIndex];
     const inst = contract.installments[instIndex];
@@ -63,15 +61,12 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
     inst.status = 'paid';
     inst.paid_date = new Date().toLocaleDateString('ar-EG');
 
-    // Recalculate contract remaining balance
     contract.remaining_balance = Math.max(contract.remaining_balance - amountPaidNow, 0);
 
-    // Update in customersData list
     const updatedList = customersData.map(c => c.name === selectedCustomer.name ? updatedCust : c);
     setCustomersData(updatedList);
     setSelectedCustomer(updatedCust);
 
-    // Trigger receipt modal
     if (onDirectCollect) {
       onDirectCollect({
         receiptNumber: 'REC-' + Math.floor(1000 + Math.random() * 9000),
@@ -92,6 +87,200 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
     (c.phone || '').includes(searchTerm)
   );
 
+  // =========================================================================
+  // 1. IN-PAGE CUSTOMER FILE VIEW (بدون أي نوافذ منبثقة تعزل المستخدم)
+  // =========================================================================
+  if (selectedCustomer) {
+    const totRem = selectedCustomer.contracts?.reduce((sum: number, c: any) => sum + (c.remaining_balance || 0), 0) || 0;
+    const totPrice = selectedCustomer.contracts?.reduce((sum: number, c: any) => sum + (c.installment_price || 0), 0) || 0;
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-150">
+        {/* Breadcrumbs & Navigation Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedCustomer(null)}
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+            >
+              <ArrowRight className="w-4 h-4" />
+              العودة لقائمة العملاء
+            </button>
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black text-slate-900">{selectedCustomer.name}</h2>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-100">
+                  شيت: {selectedCustomer.sheet}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                رقم الهاتف: {selectedCustomer.phone || 'غير مسجل'} • إجمالي العقود: {selectedCustomer.contracts?.length || 1}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {selectedCustomer.phone && (
+              <a
+                href={`https://api.whatsapp.com/send?phone=2${selectedCustomer.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                مراسلة WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Customer Top Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-400 font-bold block mb-1">المتبقي على العميل (الديون)</span>
+            <div className="text-2xl font-black text-primary">
+              {totRem.toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1">الواجب تحصيله خلال الشهور القادمة</div>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-400 font-bold block mb-1">إجمالي قيمة العقود</span>
+            <div className="text-2xl font-black text-slate-900">
+              {totPrice.toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1">سعر بيع الأجهزة بالتقسيط</div>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-400 font-bold block mb-1">المسدد فعلياً</span>
+            <div className="text-2xl font-black text-emerald-600">
+              {(totPrice - totRem).toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+            </div>
+            <div className="text-[11px] text-emerald-700 font-semibold mt-1">
+              نسبة السداد: {totPrice > 0 ? Math.round(((totPrice - totRem) / totPrice) * 100) : 100}%
+            </div>
+          </div>
+        </div>
+
+        {/* Contracts & Detailed Month-By-Month Tables */}
+        {selectedCustomer.contracts?.map((ctr: any, ctrIdx: number) => (
+          <div key={ctrIdx} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5">
+            {/* Contract Header Banner */}
+            <div className="p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-cyan-300">{ctr.device_name}</h3>
+                  <span className="text-xs text-slate-400">عقد تقسيط رقم {ctrIdx + 1}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[11px]">المقدم المدفوع:</span>
+                  <span className="font-bold text-emerald-400">{ctr.down_payment?.toLocaleString('ar-EG')} ج.م</span>
+                </div>
+                <div className="h-6 w-px bg-slate-700"></div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">المتبقي للعقد:</span>
+                  <span className="font-black text-cyan-300">{ctr.remaining_balance?.toLocaleString('ar-EG')} ج.م</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Installments Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  جدول الشهور والأقساط المستحقة (سداد أي شهر بنقرة واحدة):
+                </h4>
+                <span className="text-[11px] text-slate-400">
+                  {ctr.installments?.length} قسط مسجل
+                </span>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                    <tr>
+                      <th className="p-3">الشهر / الدفعة</th>
+                      <th className="p-3">تاريخ الاستحقاق</th>
+                      <th className="p-3">المطلوب</th>
+                      <th className="p-3">المدفوع</th>
+                      <th className="p-3">الحالة</th>
+                      <th className="p-3 text-center">إجراء السداد</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ctr.installments?.map((inst: any, instIdx: number) => {
+                      const isPaid = inst.status === 'paid' || (inst.paid_amount >= inst.due_amount && inst.due_amount > 0);
+                      const isDownPayment = inst.item_type === 'down_payment';
+
+                      return (
+                        <tr key={instIdx} className={isPaid ? 'bg-emerald-50/30' : 'hover:bg-slate-50/80 transition'}>
+                          <td className="p-3 font-bold text-slate-900">
+                            {isDownPayment ? 'الدفعة المقدمة' : `قسط شهر ${instIdx}`}
+                          </td>
+                          <td className="p-3 text-slate-600 font-mono">
+                            {inst.due_date || '-'}
+                          </td>
+                          <td className="p-3 font-black text-slate-900 text-sm">
+                            {inst.due_amount?.toLocaleString('ar-EG')} ج.م
+                          </td>
+                          <td className="p-3 text-emerald-700 font-semibold">
+                            {inst.paid_amount > 0 ? `${inst.paid_amount.toLocaleString('ar-EG')} ج.م` : '0 ج.م'}
+                          </td>
+                          <td className="p-3">
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                مسدد ✅
+                              </span>
+                            ) : inst.paid_amount > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                                سداد جزئي ({inst.paid_amount} ج.م)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                مستحق السداد ⏳
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            {!isPaid ? (
+                              <button
+                                onClick={() => handlePayInstallment(ctrIdx, instIdx)}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition inline-flex items-center gap-1 active:scale-95"
+                              >
+                                <DollarSign className="w-3.5 h-3.5" />
+                                سداد هذا الشهر
+                              </button>
+                            ) : (
+                              <span className="text-slate-400 text-xs font-semibold">تم السداد</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 2. MAIN CUSTOMERS DIRECTORY LIST VIEW
+  // =========================================================================
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -102,7 +291,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
             سجل العملاء وملفات التقسيط
           </h2>
           <p className="text-xs text-slate-500">
-            اضغط على أي عميل لمشاهدة عقده وجدول أقساطه الشهرية وسداد أي شهر بضغطة زر
+            اضغط على أي عميل لفتح ملفه الداخلي مباشرة ومتابعة وسداد أقساطه الشهرية
           </p>
         </div>
 
@@ -133,7 +322,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
           <div className="col-span-full p-12 text-center text-slate-400 text-sm">لا يوجد عميل مطابق للبحث</div>
         ) : (
           filtered.map((c, idx) => {
-            const totPrice = c.contracts?.reduce((sum: number, x: any) => sum + (x.installment_price || 0), 0) || 0;
             const remBal = c.contracts?.reduce((sum: number, x: any) => sum + (x.remaining_balance || 0), 0) || 0;
             const mainDevice = c.contracts?.[0]?.device_name || 'هاتف ذكي';
 
@@ -141,11 +329,11 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
               <div
                 key={idx}
                 onClick={() => setSelectedCustomer(c)}
-                className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-primary hover:shadow-md transition cursor-pointer flex flex-col justify-between space-y-3"
+                className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-primary hover:shadow-md transition cursor-pointer flex flex-col justify-between space-y-3 group"
               >
                 <div>
                   <div className="flex items-start justify-between">
-                    <h4 className="font-bold text-slate-900 text-sm">{c.name}</h4>
+                    <h4 className="font-bold text-slate-900 text-sm group-hover:text-primary transition">{c.name}</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-100">
                       شيت: {c.sheet}
                     </span>
@@ -164,186 +352,15 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({ onDirectCollect })
                     </span>
                   </div>
 
-                  <button className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                    عرض جدول الأقساط ←
-                  </button>
+                  <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-[-3px] transition">
+                    فتح الملف والأقساط ←
+                  </span>
                 </div>
               </div>
             );
           })
         )}
       </div>
-
-      {/* FULL CUSTOMER DOSSIER MODAL WITH MONTH-BY-MONTH SCHEDULE */}
-      {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 md:p-6 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">{selectedCustomer.name}</h3>
-                  <div className="text-xs text-slate-500 flex items-center gap-2">
-                    <span>الهاتف: {selectedCustomer.phone || 'غير مسجل'}</span>
-                    <span>•</span>
-                    <span>شيت: {selectedCustomer.sheet}</span>
-                  </div>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedCustomer(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Scrollable Body */}
-            <div className="p-4 md:p-6 overflow-y-auto space-y-6">
-              {selectedCustomer.contracts?.map((ctr: any, ctrIdx: number) => (
-                <div key={ctrIdx} className="space-y-4">
-                  {/* Contract Overview Cards */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="w-5 h-5 text-cyan-400" />
-                        <span className="font-bold text-sm text-cyan-300">{ctr.device_name}</span>
-                      </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-200">
-                        عقد رقم {ctrIdx + 1}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-700 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">سعر القسط:</span>
-                        <span className="font-bold">{ctr.installment_price?.toLocaleString('ar-EG')} ج.م</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">المقدم المدفوع:</span>
-                        <span className="font-bold text-emerald-400">{ctr.down_payment?.toLocaleString('ar-EG')} ج.م</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">المتبقي الكلي:</span>
-                        <span className="font-black text-cyan-300">{ctr.remaining_balance?.toLocaleString('ar-EG')} ج.م</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">عدد الأقساط:</span>
-                        <span className="font-bold">{ctr.installment_count || ctr.installments?.length} شهر</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Month-By-Month Installments Table */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        جدول الأقساط الشهرية وسجل السداد
-                      </h4>
-                      <span className="text-[11px] text-slate-400">
-                        اضغط "سداد هذا الشهر" لتسجيل الدفعة فوراً
-                      </span>
-                    </div>
-
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-right text-xs">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                          <tr>
-                            <th className="p-2.5">الشهر</th>
-                            <th className="p-2.5">تاريخ الاستحقاق</th>
-                            <th className="p-2.5">المطلوب</th>
-                            <th className="p-2.5">المدفوع</th>
-                            <th className="p-2.5">الحالة</th>
-                            <th className="p-2.5 text-center">إجراء</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {ctr.installments?.map((inst: any, instIdx: number) => {
-                            const isPaid = inst.status === 'paid' || (inst.paid_amount >= inst.due_amount && inst.due_amount > 0);
-                            const isDownPayment = inst.item_type === 'down_payment';
-
-                            return (
-                              <tr key={instIdx} className={isPaid ? 'bg-emerald-50/30' : 'hover:bg-slate-50'}>
-                                <td className="p-2.5 font-bold text-slate-800">
-                                  {isDownPayment ? 'الدفعة المقدمة' : `قسط شهر ${instIdx}`}
-                                </td>
-                                <td className="p-2.5 text-slate-600 font-mono">
-                                  {inst.due_date || '-'}
-                                </td>
-                                <td className="p-2.5 font-bold text-slate-900">
-                                  {inst.due_amount?.toLocaleString('ar-EG')} ج.م
-                                </td>
-                                <td className="p-2.5 text-emerald-700 font-semibold">
-                                  {inst.paid_amount > 0 ? `${inst.paid_amount.toLocaleString('ar-EG')} ج.م` : '0'}
-                                </td>
-                                <td className="p-2.5">
-                                  {isPaid ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                      مسدد ✅
-                                    </span>
-                                  ) : inst.paid_amount > 0 ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                                      سداد جزئي
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                                      <Clock className="w-3 h-3 text-amber-600" />
-                                      مستحق السداد
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="p-2.5 text-center">
-                                  {!isPaid ? (
-                                    <button
-                                      onClick={() => handlePayInstallment(ctrIdx, instIdx)}
-                                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm transition inline-flex items-center gap-1 active:scale-95"
-                                    >
-                                      <DollarSign className="w-3 h-3" />
-                                      سداد هذا الشهر
-                                    </button>
-                                  ) : (
-                                    <span className="text-slate-400 text-[11px]">تم السداد</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Modal Footer with WhatsApp */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-              {selectedCustomer.phone && (
-                <a
-                  href={`https://api.whatsapp.com/send?phone=2${selectedCustomer.phone.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition"
-                >
-                  <Share2 className="w-4 h-4" />
-                  مراسلة العميل على WhatsApp
-                </a>
-              )}
-              <button
-                onClick={() => setSelectedCustomer(null)}
-                className="py-2 px-5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition mr-auto"
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
