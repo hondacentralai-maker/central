@@ -11,6 +11,7 @@ import {
   FileText, 
   BarChart3, 
   Database,
+  Sparkles,
   X
 } from 'lucide-react';
 
@@ -25,7 +26,8 @@ export type NavTab =
   | 'fast_credit' 
   | 'suppliers' 
   | 'reports' 
-  | 'migration';
+  | 'migration'
+  | 'tester';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -54,13 +56,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'suppliers' as NavTab, label: 'الموردين والمشتريات', icon: Truck },
     { id: 'reports' as NavTab, label: 'التقارير المالية', icon: BarChart3 },
     { id: 'migration' as NavTab, label: 'بيانات الإكسل المرحّلة', icon: Database, badge: '177 عقد' },
+    { id: 'tester' as NavTab, label: 'فحص واختبار النظام', icon: Sparkles, badge: 'تيستر شامل' },
   ];
 
   const allowedTabsByRole: Record<string, NavTab[]> = {
     admin: navItems.map((item) => item.id),
-    manager: navItems.map((item) => item.id).filter((id) => id !== 'migration'),
-    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'wallets', 'pos'],
-    collector: ['dashboard', 'installments', 'customers'],
+    manager: navItems.map((item) => item.id),
+    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'closing', 'wallets', 'pos', 'tester'],
+    collector: ['dashboard', 'installments', 'customers', 'tester'],
     sales: ['dashboard', 'customers', 'installments'],
     reports: ['dashboard', 'reports'],
   };

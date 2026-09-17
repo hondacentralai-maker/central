@@ -19,6 +19,7 @@ import { FastCreditPage } from './pages/FastCreditPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { MigrationViewerPage } from './pages/MigrationViewerPage';
+import { SystemTesterPage } from './pages/SystemTesterPage';
 import { supabase } from './utils/supabase';
 import type { Contract, Profile } from './types';
 
@@ -41,6 +42,19 @@ export default function App() {
   const [selectedContractForCollection, setSelectedContractForCollection] = useState<Contract | null>(null);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [targetCustomerForCustomersPage, setTargetCustomerForCustomersPage] = useState<string | null>(null);
+
+  const handleNavigateWithTarget = (tab: NavTab, customerTarget?: string) => {
+    setActiveTab(tab);
+    if (customerTarget) {
+      setTargetCustomerForCustomersPage(customerTarget);
+    }
+  };
+
+  const handleDirectCollectReceipt = (receipt: any) => {
+    setReceiptData(receipt);
+    setIsReceiptModalOpen(true);
+  };
 
   const hydrateSession = useCallback(async (nextSession: Session | null) => {
     setSession(nextSession);
@@ -199,9 +213,22 @@ export default function App() {
         />
 
         <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-8 lg:p-8">
-          {activeTab === 'dashboard' && <DashboardPage onQuickCollect={() => handleOpenCollection()} onNavigate={setActiveTab} />}
+          {activeTab === 'dashboard' && (
+            <DashboardPage 
+              onQuickCollect={() => handleOpenCollection()} 
+              onNavigate={handleNavigateWithTarget} 
+              onDirectCollect={handleDirectCollectReceipt}
+            />
+          )}
           {activeTab === 'installments' && <InstallmentsPage onCollect={(contract) => handleOpenCollection(contract)} />}
-          {activeTab === 'customers' && <CustomersPage profile={profile} onOpenCollection={handleOpenCollection} />}
+          {activeTab === 'customers' && (
+            <CustomersPage 
+              profile={profile} 
+              onOpenCollection={handleOpenCollection} 
+              onDirectCollect={handleDirectCollectReceipt}
+              initialCustomerTarget={targetCustomerForCustomersPage}
+            />
+          )}
           {activeTab === 'treasury' && <TreasuryPage />}
           {activeTab === 'closing' && <DailyClosingPage />}
           {activeTab === 'wallets' && <WalletsPage />}
@@ -210,6 +237,7 @@ export default function App() {
           {activeTab === 'suppliers' && <SuppliersPage />}
           {activeTab === 'reports' && <ReportsPage />}
           {activeTab === 'migration' && <MigrationViewerPage />}
+          {activeTab === 'tester' && <SystemTesterPage onNavigate={(tab) => setActiveTab(tab as NavTab)} />}
         </main>
       </div>
 

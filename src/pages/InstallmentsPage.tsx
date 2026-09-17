@@ -46,39 +46,82 @@ export const InstallmentsPage: React.FC<InstallmentsPageProps> = ({ onCollect })
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // 1. Check local state first (includes all customers & custom additions)
+      const saved = localStorage.getItem('central_customers_state');
+      if (saved) {
+        try {
+          const customers = JSON.parse(saved);
+          if (customers && customers.length > 0) {
+            const flatContracts: Contract[] = [];
+            customers.forEach((c: any, cIdx: number) => {
+              (c.contracts || []).forEach((ctr: any, ctrIdx: number) => {
+                flatContracts.push({
+                  id: `ctr-${cIdx}-${ctrIdx}`,
+                  customer_id: c.id || `cus-${cIdx}`,
+                  customer_name: c.name,
+                  customer_phone: c.phone || '',
+                  contract_number: `CTR-${(cIdx + 1).toString().padStart(4, '0')}-${ctrIdx + 1}`,
+                  device_name: ctr.device_name || 'جهاز هاتف ذكي',
+                  cash_price: Number(ctr.cash_price || 0),
+                  total_installment_price: Number(ctr.installment_price || 0),
+                  down_payment: Number(ctr.down_payment || 0),
+                  down_payment_date: ctr.down_payment_date || '',
+                  remaining_balance: Number(ctr.remaining_balance || 0),
+                  installment_count: ctr.installment_count || ctr.installments?.length || 10,
+                  monthly_installment_amount: Math.round(Number(ctr.remaining_balance || 0) / Math.max(ctr.installment_count || ctr.installments?.length || 10, 1)),
+                  start_date: '2025-01-01',
+                  due_day: 1,
+                  status: Number(ctr.remaining_balance || 0) <= 0 ? 'completed' : 'active',
+                  created_at: new Date().toISOString()
+                });
+              });
+            });
+            if (flatContracts.length > 0) {
+              setContracts(flatContracts);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // 2. Try api.getContracts()
       const data = await api.getContracts();
       if (data && data.length > 0) {
         setContracts(data);
-      } else {
-        const res = await fetch('/migrated_data.json');
-        if (res.ok) {
-          const json = await res.json();
-          const flatContracts: Contract[] = [];
-          json.customers.forEach((c: any, cIdx: number) => {
-            c.contracts.forEach((ctr: any, ctrIdx: number) => {
-              flatContracts.push({
-                id: `ctr-${cIdx}-${ctrIdx}`,
-                customer_id: `cus-${cIdx}`,
-                customer_name: c.name,
-                customer_phone: c.phone,
-                contract_number: `CTR-${(cIdx + 1).toString().padStart(4, '0')}-${ctrIdx + 1}`,
-                device_name: ctr.device_name,
-                cash_price: ctr.cash_price,
-                total_installment_price: ctr.installment_price,
-                down_payment: ctr.down_payment,
-                down_payment_date: ctr.down_payment_date,
-                remaining_balance: ctr.remaining_balance,
-                installment_count: ctr.installment_count || 10,
-                monthly_installment_amount: Math.round(ctr.remaining_balance / Math.max(ctr.installment_count || 10, 1)),
-                start_date: '2025-01-01',
-                due_day: 1,
-                status: ctr.remaining_balance <= 0 ? 'completed' : 'active',
-                created_at: new Date().toISOString()
-              });
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. Fallback to migrated_data.json
+      const res = await fetch('/migrated_data.json');
+      if (res.ok) {
+        const json = await res.json();
+        const flatContracts: Contract[] = [];
+        json.customers.forEach((c: any, cIdx: number) => {
+          c.contracts.forEach((ctr: any, ctrIdx: number) => {
+            flatContracts.push({
+              id: `ctr-${cIdx}-${ctrIdx}`,
+              customer_id: `cus-${cIdx}`,
+              customer_name: c.name,
+              customer_phone: c.phone || '',
+              contract_number: `CTR-${(cIdx + 1).toString().padStart(4, '0')}-${ctrIdx + 1}`,
+              device_name: ctr.device_name || 'جهاز هاتف ذكي',
+              cash_price: Number(ctr.cash_price || 0),
+              total_installment_price: Number(ctr.installment_price || 0),
+              down_payment: Number(ctr.down_payment || 0),
+              down_payment_date: ctr.down_payment_date || '',
+              remaining_balance: Number(ctr.remaining_balance || 0),
+              installment_count: ctr.installment_count || 10,
+              monthly_installment_amount: Math.round(Number(ctr.remaining_balance || 0) / Math.max(ctr.installment_count || 10, 1)),
+              start_date: '2025-01-01',
+              due_day: 1,
+              status: Number(ctr.remaining_balance || 0) <= 0 ? 'completed' : 'active',
+              created_at: new Date().toISOString()
             });
           });
-          setContracts(flatContracts);
-        }
+        });
+        setContracts(flatContracts);
       }
     } catch {
       //
