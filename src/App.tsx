@@ -69,7 +69,9 @@ export default function App() {
             <InstallmentsPage onCollect={(ctr) => handleOpenCollection(ctr)} />
           )}
 
-          {activeTab === 'customers' && <CustomersPage />}
+          {activeTab === 'customers' && (
+            <CustomersPage onDirectCollect={handleCollectionSuccess} />
+          )}
 
           {activeTab === 'treasury' && <TreasuryPage />}
 
