@@ -12,6 +12,22 @@ export interface Organization {
   receipt_footer?: string;
 }
 
+/**
+ * The application-facing profile tied to the authenticated Supabase user.
+ * Keep this deliberately small: financial screens only need identity,
+ * organization scope and the permission role.
+ */
+export interface Profile {
+  id: string;
+  organization_id: string | null;
+  branch_id: string | null;
+  full_name: string;
+  phone?: string | null;
+  role: 'admin' | 'manager' | 'cashier' | 'collector' | 'sales' | 'reports' | string;
+  is_active: boolean;
+  branch?: { name: string; code?: string | null } | null;
+}
+
 export interface Customer {
   id: string;
   code: string;

@@ -7,14 +7,17 @@ interface BottomNavProps {
   onTabChange: (tab: NavTab) => void;
   onOpenMobileMenu: () => void;
   onQuickCollect: () => void;
+  role: string;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
   onOpenMobileMenu,
-  onQuickCollect
+  onQuickCollect,
+  role,
 }) => {
+  const canCollect = ['admin', 'manager', 'cashier', 'collector'].includes(role);
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-3 py-1.5 flex items-center justify-around shadow-lg">
       <button
@@ -38,12 +41,23 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       </button>
 
       {/* Floating Center Quick Collect Button */}
-      <button
-        onClick={onQuickCollect}
-        className="flex flex-col items-center -mt-5 bg-primary text-white p-3 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition"
-      >
-        <PlusCircle className="w-6 h-6" />
-      </button>
+      {canCollect ? (
+        <button
+          onClick={onQuickCollect}
+          aria-label="تسجيل تحصيل سريع"
+          className="flex flex-col items-center -mt-5 rounded-full bg-primary p-3 text-white shadow-lg shadow-primary/30 transition active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-200"
+        >
+          <PlusCircle className="w-6 h-6" />
+        </button>
+      ) : (
+        <button
+          onClick={() => onTabChange(role === 'reports' ? 'reports' : 'customers')}
+          className="flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[11px] font-medium text-slate-500"
+        >
+          <PlusCircle className="w-5 h-5" />
+          {role === 'reports' ? 'التقارير' : 'العملاء'}
+        </button>
+      )}
 
       <button
         onClick={() => onTabChange('treasury')}

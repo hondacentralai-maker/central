@@ -32,13 +32,15 @@ interface SidebarProps {
   onTabChange: (tab: NavTab) => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  role: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
   isOpenMobile,
-  onCloseMobile
+  onCloseMobile,
+  role,
 }) => {
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'لوحة التحكم', icon: LayoutDashboard },
@@ -53,6 +55,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'reports' as NavTab, label: 'التقارير المالية', icon: BarChart3 },
     { id: 'migration' as NavTab, label: 'بيانات الإكسل المرحّلة', icon: Database, badge: '177 عقد' },
   ];
+
+  const allowedTabsByRole: Record<string, NavTab[]> = {
+    admin: navItems.map((item) => item.id),
+    manager: navItems.map((item) => item.id).filter((id) => id !== 'migration'),
+    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'wallets', 'pos'],
+    collector: ['dashboard', 'installments', 'customers'],
+    sales: ['dashboard', 'customers', 'installments'],
+    reports: ['dashboard', 'reports'],
+  };
+  const visibleItems = navItems.filter((item) => (allowedTabsByRole[role] || []).includes(item.id));
 
   const handleSelect = (tab: NavTab) => {
     onTabChange(tab);
@@ -91,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             الوحدات والعمليات
           </div>
 
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -128,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer info */}
         <div className="p-3 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 text-center">
-          سنترال المركزي v1.0 • متصل سحابياً
+          سنترال المركزي • صلاحيات حسب الدور
         </div>
       </aside>
     </>

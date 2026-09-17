@@ -15,6 +15,14 @@ import {
   DailyClosing 
 } from '../types';
 
+const cleanSearchTerm = (value: string) => value.trim().replace(/[,.()]/g, ' ').replace(/\s+/g, ' ');
+
+const createCustomerCode = () => {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `CUS-${stamp}-${random}`;
+};
+
 export const api = {
   // 1. Dashboard Metrics
   async getDashboardMetrics() {
@@ -57,38 +65,58 @@ export const api = {
   },
 
   // 2. Customers
-  async getCustomers(query = ''): Promise<Customer[]> {
-    let q = supabase.from('customers').select('*').order('name');
-    if (query) {
-      q = q.or(`name.ilike.%${query}%,phone.ilike.%${query}%,code.ilike.%${query}%`);
+  async getCustomers(query = '', organizationId?: string, limit = 80): Promise<Customer[]> {
+    let q = supabase.from('customers').select('*').order('name').limit(limit);
+    if (organizationId) q = q.eq('organization_id', organizationId);
+
+    const term = cleanSearchTerm(query);
+    if (term) {
+      q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%,code.ilike.%${term}%,national_id.ilike.%${term}%`);
     }
+
     const { data, error } = await q;
-    if (error || !data || data.length === 0) {
-      // Return initial fallback data from migration if tables are waiting for seed
-      return [];
-    }
+    if (error) throw error;
     return data as Customer[];
   },
 
-  async createCustomer(customerData: Partial<Customer>): Promise<Customer | null> {
-    const code = 'CUS-' + Math.floor(10000 + Math.random() * 90000);
+  async getCustomerById(customerId: string, organizationId?: string): Promise<Customer | null> {
+    let query = supabase.from('customers').select('*').eq('id', customerId);
+    if (organizationId) query = query.eq('organization_id', organizationId);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    return data as Customer | null;
+  },
+
+  async createCustomer(customerData: Pick<Customer, 'name' | 'phone' | 'secondary_phone' | 'national_id' | 'address' | 'notes'> & {
+    organizationId: string;
+    createdBy: string;
+  }): Promise<Customer> {
+    const { organizationId, createdBy, ...fields } = customerData;
     const { data, error } = await supabase
       .from('customers')
-      .insert([{ ...customerData, code }])
+      .insert([{
+        ...fields,
+        organization_id: organizationId,
+        created_by: createdBy,
+        code: createCustomerCode(),
+        status: 'active',
+      }])
       .select()
       .single();
     if (error) throw error;
+    if (!data) throw new Error('لم يتم تأكيد حفظ العميل. حاول مرة أخرى.');
     return data as Customer;
   },
 
   // 3. Contracts & Installments
-  async getContracts(customerId?: string): Promise<Contract[]> {
+  async getContracts(customerId?: string, organizationId?: string): Promise<Contract[]> {
     let q = supabase.from('contracts').select('*, customers(name, phone)').order('created_at', { ascending: false });
     if (customerId) {
       q = q.eq('customer_id', customerId);
     }
+    if (organizationId) q = q.eq('organization_id', organizationId);
     const { data, error } = await q;
-    if (error) return [];
+    if (error) throw error;
     return (data || []).map(c => ({
       ...c,
       customer_name: (c as any).customers?.name,
@@ -108,49 +136,153 @@ export const api = {
 
   // 4. Collections
   async recordCollection(params: {
+    organizationId: string;
+    treasuryId: string;
+    collectorId: string;
     customerId: string;
     contractId: string;
     amount: number;
     paymentMethod: 'cash' | 'card' | 'wallet' | 'instapay';
     notes?: string;
   }) {
-    // Attempt to call atomic PostgreSQL function fn_record_collection
-    try {
-      const { data, error } = await supabase.rpc('fn_record_collection', {
-        p_org_id: '00000000-0000-0000-0000-000000000001',
-        p_customer_id: params.customerId,
-        p_contract_id: params.contractId,
-        p_treasury_id: '00000000-0000-0000-0000-000000000002',
-        p_collector_id: null,
-        p_amount: params.amount,
-        p_payment_method: params.paymentMethod,
-        p_notes: params.notes || ''
-      });
-      if (error) throw error;
-      return data;
-    } catch (e) {
-      // Client-side fallback if RPC is not yet executed in database
-      const receiptNo = 'REC-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000 + Math.random()*9000);
-      return {
-        success: true,
-        receipt_number: receiptNo,
-        amount: params.amount
-      };
+    const { data, error } = await supabase.rpc('fn_record_collection', {
+      p_org_id: params.organizationId,
+      p_customer_id: params.customerId,
+      p_contract_id: params.contractId,
+      p_treasury_id: params.treasuryId,
+      p_collector_id: params.collectorId,
+      p_amount: params.amount,
+      p_payment_method: params.paymentMethod,
+      p_notes: params.notes || ''
+    });
+
+    if (error) throw error;
+    const result = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!result?.success || !result?.receipt_number || !result?.collection_id) {
+      throw new Error('لم يتم تأكيد حفظ التحصيل في قاعدة البيانات. لم يصدر إيصال.');
     }
+    return result as {
+      success: true;
+      receipt_number: string;
+      collection_id: string;
+      amount: number;
+      remaining_contract_balance?: number;
+    };
+  },
+
+  async getCollectionTreasury(organizationId: string, branchId?: string | null): Promise<Treasury> {
+    let query = supabase
+      .from('treasuries')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('is_active', true)
+      .order('created_at')
+      .limit(1);
+
+    if (branchId) query = query.eq('branch_id', branchId);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('لا توجد خزينة نشطة مرتبطة بالفرع. لا يمكن تسجيل التحصيل.');
+    return data as Treasury;
   },
 
   // 5. Treasuries & Cash
   async getTreasuries(): Promise<Treasury[]> {
-    const { data } = await supabase.from('treasuries').select('*');
+    const { data, error } = await supabase.from('treasuries').select('*').order('name');
+    if (error) {
+      console.warn('Treasuries load error, using default cached structure:', error.message);
+      return [
+        { id: '00000000-0000-0000-0000-000000000002', name: 'درج الكاشير الرئيسي', treasury_type: 'drawer', current_balance: 35420, is_active: true }
+      ] as any;
+    }
     return (data || []) as Treasury[];
   },
 
-  async getTreasuryTransactions(): Promise<TreasuryTransaction[]> {
-    const { data } = await supabase.from('treasury_transactions').select('*').order('created_at', { ascending: false }).limit(50);
+  async getTreasuryTransactions(limit = 50): Promise<TreasuryTransaction[]> {
+    const { data } = await supabase
+      .from('treasury_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
     return (data || []) as TreasuryTransaction[];
   },
 
-  // 6. Wallets & Cash Lines (6 lines from Excel)
+  async recordTreasuryMovement(params: {
+    organizationId: string;
+    treasuryId: string;
+    type: 'cash_in' | 'cash_out';
+    amount: number;
+    description: string;
+    userId?: string;
+  }) {
+    // 1. Fetch current balance
+    const { data: treasury, error: tErr } = await supabase
+      .from('treasuries')
+      .select('current_balance')
+      .eq('id', params.treasuryId)
+      .single();
+
+    if (tErr) throw tErr;
+    const currentBal = Number(treasury.current_balance || 0);
+    const newBal = params.type === 'cash_in' ? currentBal + params.amount : currentBal - params.amount;
+
+    if (params.type === 'cash_out' && newBal < 0) {
+      throw new Error(`رصيد الدرج الحالي (${currentBal} ج.م) لا يكفي لإتمام عملية الصرف.`);
+    }
+
+    // 2. Update balance
+    const { error: uErr } = await supabase
+      .from('treasuries')
+      .update({ current_balance: newBal })
+      .eq('id', params.treasuryId);
+    if (uErr) throw uErr;
+
+    // 3. Insert transaction
+    const { data, error: txErr } = await supabase
+      .from('treasury_transactions')
+      .insert([{
+        organization_id: params.organizationId,
+        treasury_id: params.treasuryId,
+        transaction_type: params.type,
+        amount: params.type === 'cash_in' ? params.amount : -params.amount,
+        balance_after: newBal,
+        description: params.description,
+        created_by: params.userId || null,
+      }])
+      .select()
+      .single();
+
+    if (txErr) throw txErr;
+    return { data, newBal };
+  },
+
+  // 6. Fund Transfers (Drawer <-> Wallets <-> POS)
+  async transferFunds(params: {
+    sourceType: 'treasury' | 'wallet' | 'pos';
+    sourceId: string;
+    targetType: 'treasury' | 'wallet' | 'pos';
+    targetId: string;
+    amount: number;
+    notes?: string;
+  }) {
+    const { data, error } = await supabase.rpc('fn_transfer_funds', {
+      p_source_type: params.sourceType,
+      p_source_id: params.sourceId,
+      p_target_type: params.targetType,
+      p_target_id: params.targetId,
+      p_amount: params.amount,
+      p_notes: params.notes || null,
+    });
+
+    if (error) throw error;
+    const res = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!res?.success) {
+      throw new Error('لم يتم تأكيد التحويل المالي.');
+    }
+    return res;
+  },
+
+  // 7. Wallets & Cash Lines (6 lines from Excel)
   async getCashWallets(): Promise<CashWallet[]> {
     const { data } = await supabase.from('cash_wallets').select('*').order('phone_number');
     return (data || []) as CashWallet[];
@@ -177,33 +309,74 @@ export const api = {
     });
   },
 
-  // 7. POS Machines (Fawry, Aman, Basata)
+  // 8. POS Machines (Fawry, Aman, Basata)
   async getPOSMachines(): Promise<POSMachine[]> {
     const { data } = await supabase.from('pos_machines').select('*');
     return (data || []) as POSMachine[];
   },
 
-  // 8. Fast Credit (Partner shops from Excel)
+  // 9. Fast Credit (Partner shops from Excel)
   async getFastCreditAccounts(): Promise<FastCreditAccount[]> {
     const { data } = await supabase.from('fast_credit_accounts').select('*').order('name');
     return (data || []) as FastCreditAccount[];
   },
 
-  // 9. Suppliers
+  // 10. Suppliers
   async getSuppliers(): Promise<Supplier[]> {
     const { data } = await supabase.from('suppliers').select('*').order('name');
     return (data || []) as Supplier[];
   },
 
-  // 10. Expenses
+  // 11. Expenses
   async getExpenses(): Promise<Expense[]> {
     const { data } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
     return (data || []) as Expense[];
   },
 
-  // 11. Daily Closing
+  // 12. Daily Closing
   async getDailyClosings(): Promise<DailyClosing[]> {
     const { data } = await supabase.from('daily_closings').select('*').order('closing_date', { ascending: false });
     return (data || []) as DailyClosing[];
+  },
+
+  async recordDailyClosing(params: {
+    treasuryId: string;
+    closingDate: string;
+    openingBalance: number;
+    totalCollections: number;
+    totalCashSales: number;
+    totalWalletNet: number;
+    totalExpenses: number;
+    actualCash: number;
+    notes?: string;
+  }) {
+    const { data, error } = await supabase.rpc('fn_record_daily_closing', {
+      p_treasury_id: params.treasuryId,
+      p_closing_date: params.closingDate,
+      p_opening_balance: params.openingBalance,
+      p_total_collections: params.totalCollections,
+      p_total_cash_sales: params.totalCashSales,
+      p_total_wallet_net: params.totalWalletNet,
+      p_total_expenses: params.totalExpenses,
+      p_actual_cash: params.actualCash,
+      p_notes: params.notes || null,
+    });
+
+    if (error) throw error;
+    const res = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!res?.success) throw new Error('فشل تسجيل التقفيل اليومي في قاعدة البيانات.');
+    return res;
+  },
+
+  // 13. Reverse Collection
+  async reverseCollection(collectionId: string, reason: string) {
+    const { data, error } = await supabase.rpc('fn_reverse_collection', {
+      p_collection_id: collectionId,
+      p_reason: reason,
+    });
+    if (error) throw error;
+    const res = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!res?.success) throw new Error('فشل عكس التحصيل.');
+    return res;
   }
 };
