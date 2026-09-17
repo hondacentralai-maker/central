@@ -36,8 +36,8 @@ export const SuppliersPage: React.FC = () => {
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-400 block">رصيد المورد المستحق:</span>
-                <span className="text-xl font-black text-rose-600">
-                  {s.current_balance.toLocaleString('ar-EG')} ج.م
+                <span className="text-xl font-black text-rose-600 font-mono">
+                  {s.current_balance.toLocaleString('en-US')} ج.م
                 </span>
               </div>
 

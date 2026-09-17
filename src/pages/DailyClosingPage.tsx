@@ -174,7 +174,7 @@ export const DailyClosingPage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
               <span className="text-slate-500 font-semibold">رصيد افتتاحي للدرج (الصباحي):</span>
               <div className="text-lg font-black text-slate-900">
-                {openingBalance.toLocaleString('ar-EG')} ج.م
+                {openingBalance.toLocaleString('en-US')} ج.م
               </div>
             </div>
 
@@ -182,7 +182,7 @@ export const DailyClosingPage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
               <span className="text-emerald-700 font-semibold">+ تحصيلات الأقساط النقدية:</span>
               <div className="text-lg font-black text-emerald-800">
-                {totalCollections.toLocaleString('ar-EG')} ج.م
+                {totalCollections.toLocaleString('en-US')} ج.م
               </div>
             </div>
 
@@ -190,7 +190,7 @@ export const DailyClosingPage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
               <span className="text-emerald-700 font-semibold">+ المبيعات النقدية المباشرة:</span>
               <div className="text-lg font-black text-emerald-800">
-                {totalCashSales.toLocaleString('ar-EG')} ج.م
+                {totalCashSales.toLocaleString('en-US')} ج.م
               </div>
             </div>
 
@@ -198,7 +198,7 @@ export const DailyClosingPage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 space-y-1">
               <span className="text-purple-700 font-semibold">+ صافي إيداعات وسحب المحافظ:</span>
               <div className="text-lg font-black text-purple-800">
-                {totalWalletNet.toLocaleString('ar-EG')} ج.م
+                {totalWalletNet.toLocaleString('en-US')} ج.م
               </div>
             </div>
 
@@ -206,7 +206,7 @@ export const DailyClosingPage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 space-y-1 sm:col-span-2">
               <span className="text-rose-700 font-semibold">- المصروفات والمنصرفات النقدية:</span>
               <div className="text-lg font-black text-rose-800">
-                {totalExpenses.toLocaleString('ar-EG')} ج.م
+                {totalExpenses.toLocaleString('en-US')} ج.م
               </div>
             </div>
           </div>
@@ -273,14 +273,14 @@ export const DailyClosingPage: React.FC = () => {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between p-2.5 rounded-xl bg-slate-50">
-                <span className="text-slate-500 font-semibold">الرصيد الدفتري المتوقع:</span>
-                <span className="font-bold text-slate-900">{expectedBalance.toLocaleString('ar-EG')} ج.م</span>
+              <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 font-mono">
+                <span className="text-slate-500 font-semibold font-sans">الرصيد الدفتري المتوقع:</span>
+                <span className="font-bold text-slate-900">{expectedBalance.toLocaleString('en-US')} ج.م</span>
               </div>
 
-              <div className="flex justify-between p-2.5 rounded-xl bg-slate-50">
-                <span className="text-slate-500 font-semibold">النقدية الفعلية بالدرج:</span>
-                <span className="font-bold text-slate-900">{actualNum.toLocaleString('ar-EG')} ج.م</span>
+              <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 font-mono">
+                <span className="text-slate-500 font-semibold font-sans">النقدية الفعلية بالدرج:</span>
+                <span className="font-bold text-slate-900">{actualNum.toLocaleString('en-US')} ج.م</span>
               </div>
 
               {/* Status Box */}
@@ -298,8 +298,8 @@ export const DailyClosingPage: React.FC = () => {
                     ? 'يوجد زيادة في نقدية الدرج 🔼'
                     : 'يوجد عجز في نقدية الدرج 🔻'}
                 </div>
-                <div className="text-2xl font-black">
-                  {difference > 0 ? '+' : ''}{difference.toLocaleString('ar-EG')} ج.م
+                <div className="text-2xl font-black font-mono">
+                  {difference > 0 ? '+' : ''}{difference.toLocaleString('en-US')} ج.م
                 </div>
               </div>
             </div>
@@ -329,20 +329,20 @@ export const DailyClosingPage: React.FC = () => {
         <div className="text-center border-b-2 border-slate-900 pb-4 mb-6">
           <h1 className="text-2xl font-black">سنترال المركزي</h1>
           <p className="text-sm">كشف جرد وتقفيل يومي رسمي معتمد</p>
-          <p className="text-xs text-slate-500 mt-1">تاريخ التقفيل: {new Date().toLocaleDateString('ar-EG')} • الفرع الرئيسي</p>
+          <p className="text-xs text-slate-500 mt-1">تاريخ التقفيل: {new Date().toISOString().slice(0, 10)} • الفرع الرئيسي</p>
         </div>
 
-        <table className="w-full text-right text-sm border border-slate-300 mb-6">
+        <table className="w-full text-right text-sm border border-slate-300 mb-6 font-mono">
           <tbody>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">رقم التقفيل:</td><td className="p-2 font-mono">{submittedClosing?.closing_number || 'CLS-001'}</td></tr>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">الرصيد الافتتاحي:</td><td className="p-2">{openingBalance.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">إجمالي تحصيلات الأقساط:</td><td className="p-2">{totalCollections.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">المبيعات النقدية المباشرة:</td><td className="p-2">{totalCashSales.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">صافي حركة المحافظ:</td><td className="p-2">{totalWalletNet.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b"><td className="p-2 font-bold bg-slate-100">إجمالي المصروفات:</td><td className="p-2">{totalExpenses.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b font-bold"><td className="p-2 bg-slate-100">الرصيد الدفتري المتوقع:</td><td className="p-2">{expectedBalance.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="border-b font-black"><td className="p-2 bg-slate-100">العد الفعلي للكاش بالدرج:</td><td className="p-2">{actualNum.toLocaleString('ar-EG')} ج.م</td></tr>
-            <tr className="font-bold"><td className="p-2 bg-slate-100">فارق المطابقة (عجز/زيادة):</td><td className="p-2">{difference.toLocaleString('ar-EG')} ج.م</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">رقم التقفيل:</td><td className="p-2 font-mono">{submittedClosing?.closing_number || 'CLS-001'}</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">الرصيد الافتتاحي:</td><td className="p-2">{openingBalance.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">إجمالي تحصيلات الأقساط:</td><td className="p-2">{totalCollections.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">المبيعات النقدية المباشرة:</td><td className="p-2">{totalCashSales.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">صافي حركة المحافظ:</td><td className="p-2">{totalWalletNet.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b"><td className="p-2 font-bold bg-slate-100 font-sans">إجمالي المصروفات:</td><td className="p-2">{totalExpenses.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b font-bold"><td className="p-2 bg-slate-100 font-sans">الرصيد الدفتري المتوقع:</td><td className="p-2">{expectedBalance.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="border-b font-black"><td className="p-2 bg-slate-100 font-sans">العد الفعلي للكاش بالدرج:</td><td className="p-2">{actualNum.toLocaleString('en-US')} ج.م</td></tr>
+            <tr className="font-bold"><td className="p-2 bg-slate-100 font-sans">فارق المطابقة (عجز/زيادة):</td><td className="p-2">{difference.toLocaleString('en-US')} ج.م</td></tr>
           </tbody>
         </table>
 

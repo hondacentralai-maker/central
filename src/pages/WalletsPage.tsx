@@ -99,8 +99,8 @@ export const WalletsPage: React.FC = () => {
                 {w.phone_number}
               </span>
             </div>
-            <div className="text-xl font-black">
-              {w.current_balance.toLocaleString('ar-EG')} <span className="text-xs font-bold">ج.م</span>
+            <div className="text-xl font-black font-mono">
+              {w.current_balance.toLocaleString('en-US')} <span className="text-xs font-bold">ج.م</span>
             </div>
             <div className={`mt-2 text-[11px] flex justify-between ${
               selectedWallet?.id === w.id ? 'text-blue-100' : 'text-slate-400'
@@ -234,9 +234,9 @@ export const WalletsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-left">
+                  <div className="text-left font-mono">
                     <div className="font-black text-slate-900 text-sm">
-                      {tx.amount.toLocaleString('ar-EG')} ج.م
+                      {tx.amount.toLocaleString('en-US')} ج.م
                     </div>
                     <div className="text-[10px] font-bold text-emerald-600">
                       عمولة: +{tx.commission} ج.م

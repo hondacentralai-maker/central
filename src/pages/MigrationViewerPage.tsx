@@ -43,16 +43,16 @@ export const MigrationViewerPage: React.FC = () => {
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <div className="text-xs text-slate-400 font-bold mb-1">إجمالي قيمة العقود</div>
-          <div className="text-2xl font-black text-slate-900">
-            {(migrationData?.summary?.total_contract_value || 1994800).toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+          <div className="text-2xl font-black text-slate-900 font-mono">
+            {(migrationData?.summary?.total_contract_value || 1994800).toLocaleString('en-US')} <span className="text-xs font-bold text-slate-500">ج.م</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-1">سعر بيع الأجهزة بالتقسيط</div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <div className="text-xs text-slate-400 font-bold mb-1">إجمالي ديون العملاء المتبقية</div>
-          <div className="text-2xl font-black text-primary">
-            {(migrationData?.summary?.total_remaining_balance || 694775).toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+          <div className="text-2xl font-black text-primary font-mono">
+            {(migrationData?.summary?.total_remaining_balance || 694775).toLocaleString('en-US')} <span className="text-xs font-bold text-slate-500">ج.م</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-1">المتبقي الواجب تحصيله</div>
         </div>

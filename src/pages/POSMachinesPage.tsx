@@ -256,15 +256,15 @@ export const POSMachinesPage: React.FC = () => {
 
       {/* KPI Stats Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-xl flex items-center justify-between">
+        <div className="p-5 rounded-3xl bg-white border-2 border-primary/30 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 font-bold block mb-1">إجمالي سيولة الماكينات</span>
-            <div className="text-2xl md:text-3xl font-black text-cyan-300 font-mono">
-              {totalBalance.toLocaleString('ar-EG')} <span className="text-xs text-slate-400">ج.م</span>
+            <span className="text-xs text-primary font-bold block mb-1">إجمالي سيولة الماكينات</span>
+            <div className="text-2xl md:text-3xl font-black text-slate-900 font-mono">
+              {totalBalance.toLocaleString('en-US')} <span className="text-xs text-primary font-bold">ج.م</span>
             </div>
-            <span className="text-[11px] text-slate-400 mt-1 block">جاهزة لعمليات السداد وشحن الفواتير</span>
+            <span className="text-[11px] text-slate-500 mt-1 block">جاهزة لعمليات السداد وشحن الفواتير</span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
             <Wallet className="w-6 h-6" />
           </div>
         </div>
@@ -384,7 +384,7 @@ export const POSMachinesPage: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
                   <span className="text-[11px] text-slate-400 block font-bold">الرصيد المتاح حالياً</span>
                   <div className="text-2xl font-black text-slate-900 font-mono">
-                    {machine.current_balance?.toLocaleString('ar-EG')} <span className="text-xs font-normal text-slate-500">ج.م</span>
+                    {machine.current_balance?.toLocaleString('en-US')} <span className="text-xs font-normal text-slate-500">ج.م</span>
                   </div>
                 </div>
               </div>
@@ -583,8 +583,8 @@ export const POSMachinesPage: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-100 space-y-1">
                 <span className="text-[11px] text-blue-700 font-bold block">الماكينة المستهدفة:</span>
                 <div className="font-bold text-sm text-blue-950">{selectedMachineForRecharge.name}</div>
-                <div className="text-[11px] text-blue-600">
-                  الرصيد الحالي: {selectedMachineForRecharge.current_balance?.toLocaleString('ar-EG')} ج.م
+                <div className="text-[11px] text-blue-600 font-mono">
+                  الرصيد الحالي: {selectedMachineForRecharge.current_balance?.toLocaleString('en-US')} ج.م
                 </div>
               </div>
 

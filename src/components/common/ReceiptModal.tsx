@@ -33,8 +33,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, rec
       `إيصال رقم: ${receiptData.receiptNumber}\n` +
       `العميل: ${receiptData.customerName}\n` +
       `الجهاز: ${receiptData.deviceName}\n` +
-      `المبلغ المسدد: ${receiptData.amount.toLocaleString('ar-EG')} ج.م\n` +
-      `المتبقي بعد السداد: ${receiptData.remainingBalance.toLocaleString('ar-EG')} ج.م\n` +
+      `المبلغ المسدد: ${receiptData.amount.toLocaleString('en-US')} ج.م\n` +
+      `المتبقي بعد السداد: ${receiptData.remainingBalance.toLocaleString('en-US')} ج.م\n` +
       `التاريخ: ${receiptData.date}\n` +
       `----------------------------\n` +
       `شكراً لتعاملكم معنا ✨`;
@@ -90,14 +90,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, rec
 
           <div className="border-y border-dashed border-slate-300 py-3 my-2 text-center bg-slate-50 rounded-lg">
             <div className="text-xs text-slate-500 font-sans">المبلغ المدفوع</div>
-            <div className="text-2xl font-black text-slate-900 font-sans">
-              {receiptData.amount.toLocaleString('ar-EG')} <span className="text-sm font-bold">ج.م</span>
+            <div className="text-2xl font-black text-slate-900 font-mono">
+              {receiptData.amount.toLocaleString('en-US')} <span className="text-sm font-bold">ج.م</span>
             </div>
           </div>
 
           <div className="flex justify-between text-xs font-sans px-1">
             <span className="text-slate-500">المتبقي على العقد:</span>
-            <span className="font-bold text-primary">{receiptData.remainingBalance.toLocaleString('ar-EG')} ج.م</span>
+            <span className="font-bold text-primary font-mono">{receiptData.remainingBalance.toLocaleString('en-US')} ج.م</span>
           </div>
 
           <div className="border-t border-dashed border-slate-300 pt-3 text-[11px] text-slate-400 font-sans">

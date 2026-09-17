@@ -211,7 +211,7 @@ export const QuickCollectionModal: React.FC<QuickCollectionModalProps> = ({
         amount: numericAmount,
         remainingBalance: Number(result.remaining_contract_balance ?? Math.max(Number(selectedContract.remaining_balance) - numericAmount, 0)),
         paymentMethod,
-        date: new Date().toLocaleDateString('ar-EG'),
+        date: new Date().toISOString().slice(0, 10),
       });
       onClose();
     } catch (submitError) {
@@ -313,7 +313,7 @@ export const QuickCollectionModal: React.FC<QuickCollectionModalProps> = ({
                   }}
                   className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-primary focus:ring-4 focus:ring-blue-100"
                 >
-                  {contracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.contract_number} — {contract.device_name} — المتبقي {Number(contract.remaining_balance).toLocaleString('ar-EG')} ج.م</option>)}
+                  {contracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.contract_number} — {contract.device_name} — المتبقي {Number(contract.remaining_balance).toLocaleString('en-US')} ج.م</option>)}
                 </select>
               ) : (
                 <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">لا توجد عقود نشطة قابلة للتحصيل لهذا العميل.</p>
@@ -324,7 +324,7 @@ export const QuickCollectionModal: React.FC<QuickCollectionModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-end justify-between gap-3">
               <label htmlFor="collection-amount" className="block text-xs font-black text-slate-700">المبلغ المحصّل (ج.م)</label>
-              {selectedContract && <span className="text-[11px] font-semibold text-slate-500">المتبقي: {Number(selectedContract.remaining_balance).toLocaleString('ar-EG')} ج.م</span>}
+              {selectedContract && <span className="text-[11px] font-semibold text-slate-500 font-mono">المتبقي: {Number(selectedContract.remaining_balance).toLocaleString('en-US')} ج.م</span>}
             </div>
             <input id="collection-amount" type="number" min="0.01" max={selectedContract?.remaining_balance || undefined} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-lg font-black tabular-nums text-slate-900 outline-none focus:border-primary focus:ring-4 focus:ring-blue-100" />
           </div>

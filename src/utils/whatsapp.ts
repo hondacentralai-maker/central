@@ -23,7 +23,7 @@ export const openWhatsAppReminder = (
 `السلام عليكم ورحمة الله وبركاته،
 أهلاً بك أستاذ *${customerName}*،
 نود تذكير سيادتكم بموعد استحقاق قسط ${deviceName ? `جهاز (*${deviceName}*)` : 'العقد'}
-المبلغ المستحق: *${amount.toLocaleString('ar-EG')} ج.م*
+المبلغ المستحق: *${amount.toLocaleString('en-US')} ج.م*
 تاريخ الاستحقاق: *${dueDate}*
 
 يرجى التكرم بزيارة السنترال للسداد أو التحويل عبر فودافون كاش أو إنستاباي.
@@ -44,15 +44,16 @@ export const openWhatsAppPaymentReceipt = (
   deviceName?: string
 ) => {
   const cleanPhone = formatEgyptianPhoneNumber(phone);
+  const todayStr = new Date().toISOString().slice(0, 10);
   const msg = 
 `*إيصال استلام نقدية إلكتروني - سنترال*
 رقم الإيصال: *${receiptNo}*
-التاريخ: *${new Date().toLocaleDateString('ar-EG')}*
+التاريخ: *${todayStr}*
 ----------------------------
-تم بحمد الله استلام مبلغ: *${paidAmount.toLocaleString('ar-EG')} ج.م*
+تم بحمد الله استلام مبلغ: *${paidAmount.toLocaleString('en-US')} ج.م*
 من الأستاذ: *${customerName}*
 بخصوص: قسط ${deviceName ? `جهاز (*${deviceName}*)` : 'العقد'}
-المتبقي بعد السداد: *${remainingDebt.toLocaleString('ar-EG')} ج.م*
+المتبقي بعد السداد: *${remainingDebt.toLocaleString('en-US')} ج.م*
 طريقة السداد: نقدياً بالدرج
 
 شكراً لالتزامكم، ويسعدنا دائماً خدمتكم.

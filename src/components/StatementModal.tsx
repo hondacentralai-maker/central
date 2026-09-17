@@ -54,26 +54,25 @@ export const StatementModal: React.FC<StatementModalProps> = ({
     let msg = `*كشف حساب معتمد - سنترال*\n`;
     msg += `----------------------------\n`;
     msg += `العميل: ${customer.name}\n`;
-    msg += `كود العميل: ${customer.code || '-'}\n`;
-    msg += `التاريخ: ${new Date().toLocaleDateString('ar-EG')}\n\n`;
+    msg += `التاريخ: ${new Date().toISOString().slice(0, 10)}\n\n`;
 
     targetContracts.forEach((ctr: any, idx: number) => {
       msg += `*العقد #${idx + 1}: ${ctr.device_name}*\n`;
-      msg += `• إجمالي التقسيط: ${Number(ctr.installment_price).toLocaleString('ar-EG')} ج.م\n`;
-      msg += `• المدفوع: ${(Number(ctr.installment_price) - Number(ctr.remaining_balance)).toLocaleString('ar-EG')} ج.م\n`;
-      msg += `• المتبقي: ${Number(ctr.remaining_balance).toLocaleString('ar-EG')} ج.م\n`;
+      msg += `• إجمالي التقسيط: ${Number(ctr.installment_price).toLocaleString('en-US')} ج.م\n`;
+      msg += `• المدفوع: ${(Number(ctr.installment_price) - Number(ctr.remaining_balance)).toLocaleString('en-US')} ج.م\n`;
+      msg += `• المتبقي: ${Number(ctr.remaining_balance).toLocaleString('en-US')} ج.م\n`;
       
       const pendingInst = (ctr.installments || []).filter((i: any) => i.status !== 'paid');
       if (pendingInst.length > 0) {
         msg += `*الأقساط المتبقية:*\n`;
         pendingInst.slice(0, 3).forEach((pi: any, pIdx: number) => {
-          msg += `  - قسط ${pIdx + 1}: ${pi.due_amount} ج.م (تاريخ: ${pi.due_date})\n`;
+          msg += `  - قسط ${pIdx + 1}: ${Number(pi.due_amount).toLocaleString('en-US')} ج.م (تاريخ: ${pi.due_date})\n`;
         });
       }
       msg += `\n`;
     });
 
-    msg += `*إجمالي المديونية المتبقية: ${totalRemaining.toLocaleString('ar-EG')} ج.م*\n`;
+    msg += `*إجمالي المديونية المتبقية: ${totalRemaining.toLocaleString('en-US')} ج.م*\n`;
     msg += `نشكركم لحسن تعاملكم، ويسعدنا دائماً خدمتكم.`;
 
     const encoded = encodeURIComponent(msg);
@@ -178,7 +177,6 @@ export const StatementModal: React.FC<StatementModalProps> = ({
             <div className="space-y-1.5">
               <span className="font-bold text-slate-900 text-sm block">بيانات العميل:</span>
               <p><span className="text-slate-500">الاسم:</span> <strong>{customer.name}</strong></p>
-              <p><span className="text-slate-500">كود العميل:</span> <strong className="font-mono">{customer.code || '-'}</strong></p>
               <p><span className="text-slate-500">الهاتف الأساسي:</span> <strong className="font-mono">{customer.phone || '-'}</strong></p>
               {customer.national_id && <p><span className="text-slate-500">الرقم القومي:</span> <strong className="font-mono">{customer.national_id}</strong></p>}
               {customer.address && <p><span className="text-slate-500">العنوان:</span> <strong>{customer.address}</strong></p>}
@@ -204,33 +202,33 @@ export const StatementModal: React.FC<StatementModalProps> = ({
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200">
               <span className="text-[11px] text-slate-500 block font-bold">إجمالي التقسيط</span>
-              <span className="text-lg font-black text-slate-900">{totalContractVal.toLocaleString('ar-EG')} ج.م</span>
+              <span className="text-lg font-black text-slate-900 font-mono">{totalContractVal.toLocaleString('en-US')} ج.م</span>
             </div>
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
               <span className="text-[11px] text-emerald-700 block font-bold">المسدد فعلياً</span>
-              <span className="text-lg font-black text-emerald-700">{totalPaid.toLocaleString('ar-EG')} ج.م</span>
+              <span className="text-lg font-black text-emerald-700 font-mono">{totalPaid.toLocaleString('en-US')} ج.م</span>
             </div>
             <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
               <span className="text-[11px] text-amber-700 block font-bold">المتبقي في الذمة</span>
-              <span className="text-lg font-black text-amber-700">{totalRemaining.toLocaleString('ar-EG')} ج.م</span>
+              <span className="text-lg font-black text-amber-700 font-mono">{totalRemaining.toLocaleString('en-US')} ج.م</span>
             </div>
           </div>
 
           {/* Contracts and Installments Tables */}
           {targetContracts.map((ctr: any, ctrIdx: number) => (
             <div key={ctrIdx} className="space-y-3">
-              <div className="flex items-center justify-between bg-slate-900 text-white px-4 py-2 rounded-xl text-xs">
+              <div className="flex items-center justify-between bg-slate-100 border border-slate-200 text-slate-900 px-4 py-2.5 rounded-xl text-xs">
                 <span className="font-bold">
                   عقد #{ctrIdx + 1}: {ctr.device_name} {ctr.imei ? `(IMEI: ${ctr.imei})` : ''}
                 </span>
-                <span className="text-cyan-300 font-mono">
-                  المتبقي: {Number(ctr.remaining_balance).toLocaleString('ar-EG')} ج.م
+                <span className="text-primary font-mono font-black">
+                  المتبقي: {Number(ctr.remaining_balance).toLocaleString('en-US')} ج.م
                 </span>
               </div>
 
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-100 border-b border-slate-200 font-bold text-slate-700">
+                  <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700">
                     <tr>
                       <th className="p-2.5">الدفعة / القسط</th>
                       <th className="p-2.5">تاريخ الاستحقاق</th>
@@ -241,19 +239,19 @@ export const StatementModal: React.FC<StatementModalProps> = ({
                       <th className="p-2.5">تاريخ السداد</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 font-mono">
                     {(ctr.installments || []).map((inst: any, iIdx: number) => {
                       const isPaid = inst.status === 'paid' || (inst.paid_amount >= inst.due_amount && inst.due_amount > 0);
                       return (
-                        <tr key={iIdx} className={isPaid ? 'bg-emerald-50/20' : ''}>
-                          <td className="p-2.5 font-bold">
+                        <tr key={iIdx} className={isPaid ? 'bg-emerald-50/30' : ''}>
+                          <td className="p-2.5 font-bold font-sans">
                             {inst.item_type === 'down_payment' ? 'المقدم' : `قسط #${iIdx}`}
                           </td>
-                          <td className="p-2.5 font-mono text-slate-600">{inst.due_date || '-'}</td>
-                          <td className="p-2.5 font-bold text-slate-900">{Number(inst.due_amount || 0).toLocaleString('ar-EG')} ج.م</td>
-                          <td className="p-2.5 text-emerald-700 font-semibold">{Number(inst.paid_amount || 0).toLocaleString('ar-EG')} ج.م</td>
-                          <td className="p-2.5 font-mono">{Number(inst.remaining_amount !== undefined ? inst.remaining_amount : (inst.due_amount - (inst.paid_amount || 0))).toLocaleString('ar-EG')} ج.م</td>
-                          <td className="p-2.5">
+                          <td className="p-2.5 text-slate-600">{inst.due_date || '-'}</td>
+                          <td className="p-2.5 font-bold text-slate-900">{Number(inst.due_amount || 0).toLocaleString('en-US')} ج.م</td>
+                          <td className="p-2.5 text-emerald-700 font-semibold">{Number(inst.paid_amount || 0).toLocaleString('en-US')} ج.م</td>
+                          <td className="p-2.5 font-bold text-primary">{Number(inst.remaining_amount !== undefined ? inst.remaining_amount : (inst.due_amount - (inst.paid_amount || 0))).toLocaleString('en-US')} ج.م</td>
+                          <td className="p-2.5 font-sans">
                             {isPaid ? (
                               <span className="text-emerald-700 font-bold">مسدد ✅</span>
                             ) : inst.status === 'postponed' ? (
@@ -261,7 +259,7 @@ export const StatementModal: React.FC<StatementModalProps> = ({
                             ) : inst.paid_amount > 0 ? (
                               <span className="text-blue-700 font-bold">سداد جزئي</span>
                             ) : (
-                              <span className="text-amber-700 font-bold">مستحق ⏳</span>
+                              <span className="text-rose-600 font-bold">متأخر ⏳</span>
                             )}
                           </td>
                           <td className="p-2.5 text-slate-500 font-mono">{inst.paid_date || '-'}</td>

@@ -152,7 +152,7 @@ export const InstallmentsPage: React.FC<InstallmentsPageProps> = ({ onCollect })
       cleanPhone = '20' + cleanPhone.slice(1);
     }
     const msg = encodeURIComponent(
-      `السلام عليكم أ/ ${ctr.customer_name || 'العميل المحترم'}،\nتحية طيبة من سنترال المركزي.\nنود تذكير سيادتكم بميعاد سداد قسط جهاز (${ctr.device_name})، والمتبقي للعقد هو (${ctr.remaining_balance?.toLocaleString('ar-EG')} ج.م).\nنسعد دائماً بتشريفكم لمقر السنترال أو التحويل على أرقام الكاش المعتمدة.\nشكراً لتعاملكم الراقي.`
+      `السلام عليكم أ/ ${ctr.customer_name || 'العميل المحترم'}،\nتحية طيبة من سنترال المركزي.\nنود تذكير سيادتكم بميعاد سداد قسط جهاز (${ctr.device_name})، والمتبقي للعقد هو (${ctr.remaining_balance?.toLocaleString('en-US')} ج.م).\nنسعد دائماً بتشريفكم لمقر السنترال أو التحويل على أرقام الكاش المعتمدة.\nشكراً لتعاملكم الراقي.`
     );
     window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
   };
@@ -279,14 +279,14 @@ export const InstallmentsPage: React.FC<InstallmentsPageProps> = ({ onCollect })
                           {ctr.contract_number} {ctr.imei_number ? `• IMEI: ${ctr.imei_number}` : ''}
                         </div>
                       </td>
-                      <td className="p-3.5 font-bold text-slate-900">
-                        {ctr.total_installment_price?.toLocaleString('ar-EG')} ج.م
+                      <td className="p-3.5 font-bold text-slate-900 font-mono">
+                        {ctr.total_installment_price?.toLocaleString('en-US')} ج.م
                       </td>
-                      <td className="p-3.5 text-emerald-700 font-semibold">
-                        {ctr.down_payment > 0 ? `${ctr.down_payment.toLocaleString('ar-EG')} ج.م` : '-'}
+                      <td className="p-3.5 text-emerald-700 font-semibold font-mono">
+                        {ctr.down_payment > 0 ? `${ctr.down_payment.toLocaleString('en-US')} ج.م` : '-'}
                       </td>
-                      <td className="p-3.5 font-black text-primary text-sm">
-                        {ctr.remaining_balance?.toLocaleString('ar-EG')} ج.م
+                      <td className="p-3.5 font-black text-primary text-sm font-mono">
+                        {ctr.remaining_balance?.toLocaleString('en-US')} ج.م
                       </td>
                       <td className="p-3.5 space-y-1">
                         {isPaid ? (

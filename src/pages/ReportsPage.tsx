@@ -146,8 +146,8 @@ export const ReportsPage: React.FC = () => {
             <span>إجمالي مبيعات التقسيط</span>
             <CreditCard className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-slate-900">
-            {metrics.totalContractsValue.toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-500">ج.م</span>
+          <div className="text-2xl font-black text-slate-900 font-mono">
+            {metrics.totalContractsValue.toLocaleString('en-US')} <span className="text-xs font-bold text-slate-500">ج.م</span>
           </div>
           <div className="text-[11px] text-slate-400">من {metrics.activeContractsCount || 165} عقد قسط</div>
         </div>
@@ -158,8 +158,8 @@ export const ReportsPage: React.FC = () => {
             <span>المسدد فعلياً</span>
             <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-emerald-600">
-            {totalPaid.toLocaleString('ar-EG')} <span className="text-xs font-bold text-emerald-700">ج.م</span>
+          <div className="text-2xl font-black text-emerald-600 font-mono">
+            {totalPaid.toLocaleString('en-US')} <span className="text-xs font-bold text-emerald-700">ج.م</span>
           </div>
           <div className="text-[11px] text-emerald-700 font-bold">نسبة التحصيل: {paymentRate}%</div>
         </div>
@@ -170,22 +170,22 @@ export const ReportsPage: React.FC = () => {
             <span>المتبقي الواجب تحصيله</span>
             <TrendingUp className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-primary">
-            {metrics.totalRemainingDebt.toLocaleString('ar-EG')} <span className="text-xs font-bold text-primary/70">ج.م</span>
+          <div className="text-2xl font-black text-primary font-mono">
+            {metrics.totalRemainingDebt.toLocaleString('en-US')} <span className="text-xs font-bold text-primary/70">ج.م</span>
           </div>
           <div className="text-[11px] text-slate-400">على {metrics.totalCustomers} عميل مسجل</div>
         </div>
 
-        {/* Total Liquid Assets */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
+        {/* Total Liquid Assets (Clean White Theme) */}
+        <div className="p-5 rounded-2xl bg-white border-2 border-primary/30 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs text-primary font-bold">
             <span>إجمالي السيولة الحالية</span>
-            <Wallet className="w-4 h-4 text-cyan-300" />
+            <Wallet className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-white">
-            {totalLiquidAssets.toLocaleString('ar-EG')} <span className="text-xs font-bold text-slate-400">ج.م</span>
+          <div className="text-2xl font-black text-slate-900 font-mono">
+            {totalLiquidAssets.toLocaleString('en-US')} <span className="text-xs font-bold text-primary">ج.م</span>
           </div>
-          <div className="text-[11px] text-slate-300">درج + محافظ + ماكينات</div>
+          <div className="text-[11px] text-slate-500">درج + محافظ + ماكينات</div>
         </div>
       </div>
 
@@ -193,22 +193,20 @@ export const ReportsPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            جدول تفريغ الأصول والسيولة والالتزامات المالية
+            <Layers className="w-4 h-4 text-primary" />
+            توزيع السيولة والذمم المالية الشاملة
           </h3>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
-            تحديث لحظي
-          </span>
+          <span className="text-xs text-slate-400">مطابق لجميع الحسابات</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
               <tr>
-                <th className="p-3.5">البند المحاسبي</th>
-                <th className="p-3.5">النوع والتصنيف</th>
-                <th className="p-3.5">الرصيد / القيمة</th>
-                <th className="p-3.5">الحالة الرقابية</th>
+                <th className="p-3.5">البند المالي</th>
+                <th className="p-3.5">طبيعة البند</th>
+                <th className="p-3.5">الرصيد الفعلي</th>
+                <th className="p-3.5">الحالة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -218,8 +216,8 @@ export const ReportsPage: React.FC = () => {
                   النقدية السائلة (الدرج + العهدة)
                 </td>
                 <td className="p-3.5 text-slate-500">نقدية كاش بالفرع</td>
-                <td className="p-3.5 font-black text-slate-900 text-sm">
-                  {metrics.totalCashInTreasury.toLocaleString('ar-EG')} ج.م
+                <td className="p-3.5 font-black text-slate-900 text-sm font-mono">
+                  {metrics.totalCashInTreasury.toLocaleString('en-US')} ج.م
                 </td>
                 <td className="p-3.5"><span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">مطابق للدرج</span></td>
               </tr>
@@ -230,8 +228,8 @@ export const ReportsPage: React.FC = () => {
                   أرصدة خطوط فودافون كاش (6 خطوط)
                 </td>
                 <td className="p-3.5 text-slate-500">محافظ إلكترونية سائلة</td>
-                <td className="p-3.5 font-black text-slate-900 text-sm">
-                  {walletsTotal.toLocaleString('ar-EG')} ج.م
+                <td className="p-3.5 font-black text-slate-900 text-sm font-mono">
+                  {walletsTotal.toLocaleString('en-US')} ج.م
                 </td>
                 <td className="p-3.5"><span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded font-bold">جاهز للإيداع والسحب</span></td>
               </tr>
@@ -242,8 +240,8 @@ export const ReportsPage: React.FC = () => {
                   ماكينات الدفع (فوري، أمان، بساطة)
                 </td>
                 <td className="p-3.5 text-slate-500">أرصدة شحن وخدمات</td>
-                <td className="p-3.5 font-black text-slate-900 text-sm">
-                  {posTotal.toLocaleString('ar-EG')} ج.م
+                <td className="p-3.5 font-black text-slate-900 text-sm font-mono">
+                  {posTotal.toLocaleString('en-US')} ج.م
                 </td>
                 <td className="p-3.5"><span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-bold">4 ماكينات نشطة</span></td>
               </tr>
@@ -254,8 +252,8 @@ export const ReportsPage: React.FC = () => {
                   ديون أقساط العملاء المتبقية
                 </td>
                 <td className="p-3.5 text-slate-500">مديونيات أقساط مستحقة</td>
-                <td className="p-3.5 font-black text-primary text-sm">
-                  {metrics.totalRemainingDebt.toLocaleString('ar-EG')} ج.م
+                <td className="p-3.5 font-black text-primary text-sm font-mono">
+                  {metrics.totalRemainingDebt.toLocaleString('en-US')} ج.م
                 </td>
                 <td className="p-3.5"><span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-bold">قيد التحصيل الشهري</span></td>
               </tr>

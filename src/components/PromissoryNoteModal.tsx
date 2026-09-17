@@ -26,7 +26,7 @@ const numberToArabicWords = (num: number): string => {
     if (text) text += ' و ';
     text += `${remainder}`;
   }
-  return `فقط وقدره ${num.toLocaleString('ar-EG')} جنيه مصري لا غير (${text ? text + ' جنيه' : ''})`;
+  return `فقط وقدره ${num.toLocaleString('en-US')} جنيه مصري لا غير (${text ? text + ' جنيه' : ''})`;
 };
 
 export const PromissoryNoteModal: React.FC<PromissoryNoteModalProps> = ({
@@ -39,7 +39,7 @@ export const PromissoryNoteModal: React.FC<PromissoryNoteModalProps> = ({
 
   const totalAmount = contract.installment_price || 0;
   const serialNo = `BND-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const issueDate = new Date().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' });
+  const issueDate = new Date().toISOString().slice(0, 10);
 
   const handlePrint = () => {
     window.print();
@@ -89,7 +89,7 @@ export const PromissoryNoteModal: React.FC<PromissoryNoteModalProps> = ({
             </div>
             <div className="w-24 text-left">
               <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 font-mono font-bold text-xs">
-                {totalAmount.toLocaleString('ar-EG')} ج.م
+                {totalAmount.toLocaleString('en-US')} ج.م
               </span>
             </div>
           </div>
@@ -113,7 +113,7 @@ export const PromissoryNoteModal: React.FC<PromissoryNoteModalProps> = ({
 
             <p className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs md:text-sm text-slate-700">
               بأن أدفع بموجب هذا السند لأمر إذن / <strong>إدارة السنترال (الطرف الدائن)</strong>، أو لأي حامل شرعي لهذا السند،
-              المبلغ المذكور أعلاه كاملاً وقدره <strong>{totalAmount.toLocaleString('ar-EG')} ج.م</strong>،
+              المبلغ المذكور أعلاه كاملاً وقدره <strong>{totalAmount.toLocaleString('en-US')} ج.م</strong>،
               وذلك كقيمة ثمن تقسيط جهاز <strong>({contract.device_name || 'سلعة تقسيط'})</strong>،
               وأن هذا الدين دين ثابت في ذمتي خالص من أي نزاع أو شرط، ومستحق السداد وفقاً لجدول الأقساط الشهرية المتفق عليها.
             </p>

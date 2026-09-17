@@ -9,16 +9,13 @@ import {
   CheckCircle2, 
   Clock, 
   DollarSign, 
-  Share2, 
   Calendar,
   Smartphone,
   PlusCircle,
-  Hash,
   ShieldCheck,
   MapPin,
   FileText,
   Sparkles,
-  Printer,
   Download,
   Upload,
   Edit3,
@@ -36,6 +33,15 @@ import { StatementModal } from '../components/StatementModal';
 import { PromissoryNoteModal } from '../components/PromissoryNoteModal';
 import { excelService } from '../services/excelService';
 import { openWhatsAppReminder } from '../utils/whatsapp';
+
+// Helper for clean English numbers throughout the interface
+const formatNum = (num: number | undefined | null): string => {
+  return Number(num || 0).toLocaleString('en-US');
+};
+
+const formatCurrency = (num: number | undefined | null): string => {
+  return `${formatNum(num)} ج.م`;
+};
 
 interface CustomersPageProps {
   profile?: Profile;
@@ -61,9 +67,8 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   const [isPromissoryModalOpen, setIsPromissoryModalOpen] = useState(false);
   const [selectedContractForPromissory, setSelectedContractForPromissory] = useState<any | null>(null);
 
-  // Add Customer Modal State
+  // Add Customer Modal State (NO CUSTOMER CODE)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newCustCode, setNewCustCode] = useState('');
   const [newCustName, setNewCustName] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustSecPhone, setNewCustSecPhone] = useState('');
@@ -75,24 +80,24 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   const [newGuarantorPhone, setNewGuarantorPhone] = useState('');
   const [newGuarantorRel, setNewGuarantorRel] = useState('');
   
-  // Initial Installment Contract (OPEN manual input for months!)
+  // Initial Installment Contract (OPEN manual input for months)
   const [includeContract, setIncludeContract] = useState(true);
   const [newDeviceName, setNewDeviceName] = useState('');
   const [newImei, setNewImei] = useState('');
   const [newCashPrice, setNewCashPrice] = useState('');
   const [newInstallmentPrice, setNewInstallmentPrice] = useState('');
   const [newDownPayment, setNewDownPayment] = useState('');
-  const [newMonthsCount, setNewMonthsCount] = useState('10'); // OPEN MANUAL INPUT
+  const [newMonthsCount, setNewMonthsCount] = useState('10'); // OPEN MANUAL TYPING
   const [newFirstDueDate, setNewFirstDueDate] = useState('');
 
-  // Add New Contract Modal for existing customer (OPEN manual input for months!)
+  // Add New Contract Modal for existing customer
   const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false);
   const [addCtrDevice, setAddCtrDevice] = useState('');
   const [addCtrImei, setAddCtrImei] = useState('');
   const [addCtrCashPrice, setAddCtrCashPrice] = useState('');
   const [addCtrInstPrice, setAddCtrInstPrice] = useState('');
   const [addCtrDownPay, setAddCtrDownPay] = useState('');
-  const [addCtrMonths, setAddCtrMonths] = useState('10'); // OPEN MANUAL INPUT
+  const [addCtrMonths, setAddCtrMonths] = useState('10'); // OPEN MANUAL TYPING
   const [addCtrFirstDueDate, setAddCtrFirstDueDate] = useState('');
 
   // Edit Contract Modal
@@ -147,7 +152,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     if (initialCustomerTarget && customersData.length > 0) {
       const match = customersData.find(c => 
         c.name === initialCustomerTarget || 
-        c.code === initialCustomerTarget ||
         (c.phone && c.phone === initialCustomerTarget)
       );
       if (match) {
@@ -159,7 +163,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   const loadCustomers = async () => {
     setIsLoading(true);
     try {
-      // Check localStorage first
       const saved = localStorage.getItem('central_customers_state');
       if (saved) {
         try {
@@ -175,9 +178,8 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
       const res = await fetch('/migrated_data.json');
       if (res.ok) {
         const json = await res.json();
-        let list = (json.customers || []).map((c: any, idx: number) => ({
+        let list = (json.customers || []).map((c: any) => ({
           ...c,
-          code: c.code || `CUS-${(idx + 1).toString().padStart(5, '0')}`,
           national_id: c.national_id || '',
           credit_status: c.credit_status || 'active'
         }));
@@ -199,7 +201,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     }
   };
 
-  // Helper to persist state
   const persistCustomersState = (updatedList: any[]) => {
     setCustomersData(updatedList);
     try {
@@ -207,7 +208,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     } catch {}
   };
 
-  // Toggle Customer Credit Status (نشط / متعثر)
+  // Toggle Customer Credit Status
   const handleToggleCreditStatus = () => {
     if (!selectedCustomer) return;
     const newStatus = selectedCustomer.credit_status === 'defaulted' ? 'active' : 'defaulted';
@@ -217,10 +218,8 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     setSelectedCustomer(updatedCust);
   };
 
-  // Add Customer Modal open
+  // Open Add Customer Modal
   const openAddCustomerModal = () => {
-    const nextCode = `CUS-${(customersData.length + 1).toString().padStart(5, '0')}`;
-    setNewCustCode(nextCode);
     setNewCustName('');
     setNewCustPhone('');
     setNewCustSecPhone('');
@@ -247,7 +246,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     const contracts = [];
     const instPrice = parseFloat(newInstallmentPrice) || 0;
     const downPay = parseFloat(newDownPayment) || 0;
-    const months = parseInt(newMonthsCount) || 1; // Manual open typing
+    const months = parseInt(newMonthsCount) || 1;
     const remaining = Math.max(instPrice - downPay, 0);
 
     if (includeContract && instPrice > 0) {
@@ -292,7 +291,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     }
 
     const newCustomer = {
-      code: newCustCode,
       name: newCustName.trim(),
       phone: newCustPhone.trim(),
       secondary_phone: newCustSecPhone.trim(),
@@ -321,7 +319,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
 
     const instPrice = parseFloat(addCtrInstPrice) || 0;
     const downPay = parseFloat(addCtrDownPay) || 0;
-    const months = parseInt(addCtrMonths) || 1; // Manual open typing
+    const months = parseInt(addCtrMonths) || 1;
     const remaining = Math.max(instPrice - downPay, 0);
 
     const installments = [];
@@ -405,7 +403,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     setSelectedCustomer(updatedCust);
   };
 
-  // 1-Click Fast Pay Installment (زر سريع)
+  // 1-Click Fast Pay Installment
   const handleFastPayInstallment = (contractIndex: number, instIndex: number) => {
     if (!selectedCustomer) return;
 
@@ -418,7 +416,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     inst.paid_amount = inst.due_amount;
     inst.remaining_amount = 0;
     inst.status = 'paid';
-    inst.paid_date = new Date().toLocaleDateString('ar-EG');
+    inst.paid_date = new Date().toISOString().slice(0, 10);
 
     contract.remaining_balance = Math.max(contract.remaining_balance - amountPaidNow, 0);
     if (contract.remaining_balance === 0) {
@@ -439,7 +437,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         amount: amountPaidNow,
         remainingBalance: contract.remaining_balance,
         paymentMethod: 'كاش الدرج',
-        date: new Date().toLocaleDateString('ar-EG')
+        date: new Date().toISOString().slice(0, 10)
       });
     }
   };
@@ -461,7 +459,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
 
     if (inst.remaining_amount === 0) {
       inst.status = 'paid';
-      inst.paid_date = new Date().toLocaleDateString('ar-EG');
+      inst.paid_date = new Date().toISOString().slice(0, 10);
     } else {
       inst.status = 'partially_paid';
     }
@@ -482,7 +480,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         amount: num,
         remainingBalance: contract.remaining_balance,
         paymentMethod: 'كاش الدرج (سداد جزئي)',
-        date: new Date().toLocaleDateString('ar-EG')
+        date: new Date().toISOString().slice(0, 10)
       });
     }
 
@@ -508,7 +506,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     setPostponeModal(null);
   };
 
-  // Early Settlement Submit (سداد مبكر ومخالصة)
+  // Early Settlement Submit
   const handleEarlySettlementSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!earlySettlementModal || !selectedCustomer) return;
@@ -523,7 +521,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
       inst.paid_amount = inst.due_amount;
       inst.remaining_amount = 0;
       inst.status = 'paid';
-      inst.paid_date = new Date().toLocaleDateString('ar-EG');
+      inst.paid_date = new Date().toISOString().slice(0, 10);
     });
 
     contract.remaining_balance = 0;
@@ -543,14 +541,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         amount: netAmount,
         remainingBalance: 0,
         paymentMethod: 'كاش الدرج (مخالصة نهائية)',
-        date: new Date().toLocaleDateString('ar-EG')
+        date: new Date().toISOString().slice(0, 10)
       });
     }
 
     setEarlySettlementModal(null);
   };
 
-  // Handle Excel File Upload
+  // Excel Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -576,78 +574,74 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     }
   };
 
-  // Filtered customers
+  // Filtered customers (search by name, phone, national ID)
   const filtered = customersData.filter((c) => {
     const q = searchTerm.toLowerCase().trim();
     if (!q) return true;
     return (
       (c.name || '').toLowerCase().includes(q) ||
       (c.phone || '').includes(q) ||
-      (c.code || '').toLowerCase().includes(q) ||
       (c.national_id || '').includes(q)
     );
   });
 
   // =========================================================================
-  // VIEW: SINGLE CUSTOMER FILE (Identical to User Reference Screenshot)
+  // VIEW: SINGLE CUSTOMER FILE (100% White Theme, English numbers, RTL flow)
   // =========================================================================
   if (selectedCustomer) {
     const isDefaulted = selectedCustomer.credit_status === 'defaulted';
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-150">
-        {/* Top Header Bar matching user reference: < CustomerName, PDF, تمييز كمتعثر */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 shadow-md">
+      <div className="space-y-5 animate-in fade-in duration-150" dir="rtl">
+        {/* Top Header: Pure White, Clean, No Customer Code */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedCustomer(null)}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1 transition active:scale-95 border border-slate-700"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 border border-slate-200"
             >
-              <ChevronLeft className="w-5 h-5 text-cyan-400 rotate-180" />
+              <ArrowRight className="w-4 h-4 text-primary" />
               <span>العودة للعملاء</span>
             </button>
             <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-100 flex items-center gap-2">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
                 {selectedCustomer.name}
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 border border-slate-700">
-                  {selectedCustomer.code}
-                </span>
               </h2>
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5 flex-wrap">
-                <span>الهاتف: <strong className="text-slate-200 font-mono">{selectedCustomer.phone || '-'}</strong></span>
-                {selectedCustomer.national_id && <span>• قومي: <strong className="text-slate-200 font-mono">{selectedCustomer.national_id}</strong></span>}
-                {selectedCustomer.address && <span>• {selectedCustomer.address}</span>}
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap font-sans">
+                <span>الهاتف: <strong className="text-slate-800 font-mono">{selectedCustomer.phone || '-'}</strong></span>
+                {selectedCustomer.national_id && <span>• الرقم القومي: <strong className="text-slate-800 font-mono">{selectedCustomer.national_id}</strong></span>}
+                {selectedCustomer.address && <span>• العنوان: {selectedCustomer.address}</span>}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-            {/* 1. PDF Statement Button */}
+            {/* PDF Statement Button */}
             <button
               onClick={() => {
                 setSelectedContractForStatement(null);
                 setIsStatementModalOpen(true);
               }}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95"
             >
-              <FileText className="w-4 h-4 text-cyan-400" />
+              <FileText className="w-4 h-4 text-primary" />
               <span>PDF كشف الحساب</span>
             </button>
 
-            {/* 2. Defaulted Toggle Button */}
+            {/* Defaulted Toggle Button */}
             <button
               onClick={handleToggleCreditStatus}
-              className={`px-3 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 transition active:scale-95 ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 ${
                 isDefaulted
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                  ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-sm'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200'
               }`}
             >
-              <span className={`w-2.5 h-2.5 rounded-full ${isDefaulted ? 'bg-white animate-ping' : 'bg-rose-500'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${isDefaulted ? 'bg-rose-600 animate-ping' : 'bg-slate-400'}`}></span>
               <span>{isDefaulted ? 'عميل متعثر ائتمانياً' : 'تمييز كمتعثر'}</span>
             </button>
 
-            {/* 3. Add Another Contract Button */}
+            {/* Add Another Contract Button */}
             <button
               onClick={() => {
                 setAddCtrDevice('');
@@ -659,7 +653,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                 setAddCtrFirstDueDate(new Date().toISOString().slice(0, 10));
                 setIsNewContractModalOpen(true);
               }}
-              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow transition active:scale-95"
+              className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center gap-1.5 shadow transition active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
               <span>إضافة عقد جديد</span>
@@ -667,13 +661,13 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         </div>
 
-        {/* Guarantor Card */}
+        {/* Guarantor Card if available */}
         {selectedCustomer.guarantor && selectedCustomer.guarantor.name && (
-          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs flex items-center justify-between text-amber-900">
+          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs flex items-center justify-between text-amber-950">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>
-                <strong>الضامن المسجل:</strong> {selectedCustomer.guarantor.name} 
+                <strong>بيانات الضامن:</strong> {selectedCustomer.guarantor.name} 
                 {selectedCustomer.guarantor.phone && ` • هاتف: ${selectedCustomer.guarantor.phone}`}
                 {selectedCustomer.guarantor.relationship && ` (صلة القرابة: ${selectedCustomer.guarantor.relationship})`}
               </span>
@@ -681,10 +675,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         )}
 
-        {/* CONTRACTS LIST (Matching reference screenshot exactly) */}
+        {/* CONTRACTS LIST (White Cards, English numbers) */}
         <div className="space-y-6">
           {(!selectedCustomer.contracts || selectedCustomer.contracts.length === 0) ? (
-            <div className="p-12 text-center text-slate-400 border border-dashed border-slate-300 rounded-3xl bg-white">
+            <div className="p-12 text-center text-slate-400 border border-dashed border-slate-200 rounded-2xl bg-white">
               لا توجد عقود تقسيط مسجلة لهذا العميل حالياً.
               <div className="mt-3">
                 <button
@@ -706,74 +700,74 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               return (
                 <div 
                   key={ctrIdx} 
-                  className="bg-[#0f172a] text-white rounded-3xl border border-slate-800 shadow-xl overflow-hidden space-y-4 p-5 md:p-6"
+                  className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5 md:p-6 space-y-4"
                 >
-                  {/* Top Header Banner matching reference: [نشط] / [مكتمل] + 4 Metric boxes */}
+                  {/* Contract Header: Status & Device */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-0.5 rounded-full text-xs font-black ${
-                          isCompleted ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
                         }`}>
                           {isCompleted ? 'مكتمل المسدد' : 'نشط'}
                         </span>
-                        <h3 className="font-bold text-base text-slate-100">
+                        <h3 className="font-bold text-base text-slate-900">
                           {ctr.device_name} {ctr.imei ? `• IMEI: ${ctr.imei}` : ''}
                         </h3>
                       </div>
                       <span className="text-xs text-slate-400 font-mono">عقد #{ctrIdx + 1}</span>
                     </div>
 
-                    {/* 4 Financial KPIs Grid (رأس المال، إجمالي التقسيط، المدفوع، المتبقي) */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center">
+                    {/* 4 Financial KPIs Grid (English numbers) */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                       {/* 1. رأس المال */}
-                      <div className="space-y-1">
-                        <span className="text-[11px] text-slate-400 block font-bold">رأس المال (الكاش)</span>
-                        <span className="text-base md:text-lg font-black text-slate-200 font-mono">
-                          {cashPrice.toLocaleString('ar-EG')} <span className="text-[10px] text-slate-400">ج.م</span>
-                        </span>
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <span className="text-xs text-slate-500 font-bold block">رأس المال (الكاش)</span>
+                        <div className="text-lg font-black text-slate-900 font-mono">
+                          {formatCurrency(cashPrice)}
+                        </div>
                       </div>
 
                       {/* 2. إجمالي التقسيط */}
-                      <div className="space-y-1 border-r border-slate-800 pr-2">
-                        <span className="text-[11px] text-slate-400 block font-bold">إجمالي التقسيط</span>
-                        <span className="text-base md:text-lg font-black text-cyan-300 font-mono">
-                          {totalVal.toLocaleString('ar-EG')} <span className="text-[10px] text-slate-400">ج.م</span>
-                        </span>
+                      <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-100 space-y-1">
+                        <span className="text-xs text-blue-700 font-bold block">إجمالي التقسيط</span>
+                        <div className="text-lg font-black text-blue-950 font-mono">
+                          {formatCurrency(totalVal)}
+                        </div>
                       </div>
 
                       {/* 3. المدفوع */}
-                      <div className="space-y-1 border-r border-slate-800 pr-2">
-                        <span className="text-[11px] text-emerald-400 block font-bold">المدفوع</span>
-                        <span className="text-base md:text-lg font-black text-emerald-400 font-mono">
-                          {paid.toLocaleString('ar-EG')} <span className="text-[10px] text-slate-400">ج.م</span>
-                        </span>
+                      <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 space-y-1">
+                        <span className="text-xs text-emerald-700 font-bold block">المدفوع</span>
+                        <div className="text-lg font-black text-emerald-700 font-mono">
+                          {formatCurrency(paid)}
+                        </div>
                       </div>
 
                       {/* 4. المتبقي */}
-                      <div className="space-y-1 border-r border-slate-800 pr-2">
-                        <span className="text-[11px] text-amber-400 block font-bold">المتبقي</span>
-                        <span className="text-base md:text-lg font-black text-amber-400 font-mono">
-                          {remaining.toLocaleString('ar-EG')} <span className="text-[10px] text-slate-400">ج.م</span>
-                        </span>
+                      <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-100 space-y-1">
+                        <span className="text-xs text-amber-700 font-bold block">المتبقي</span>
+                        <div className="text-lg font-black text-amber-700 font-mono">
+                          {formatCurrency(remaining)}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Action Buttons Bar matching user image: تجهيز سند لأمر، سداد مبكر، كشف العقد، تعديل، حذف */}
+                    {/* Contract Action Toolbar */}
                     <div className="flex items-center justify-end gap-2 flex-wrap pt-1">
-                      {/* تجهيز سند لأمر (Purple) */}
+                      {/* تجهيز سند لأمر */}
                       <button
                         onClick={() => {
                           setSelectedContractForPromissory(ctr);
                           setIsPromissoryModalOpen(true);
                         }}
-                        className="px-3.5 py-1.5 rounded-xl bg-purple-600/90 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         <span>تجهيز سند لأمر</span>
                       </button>
 
-                      {/* سداد مبكر ومخالصة (Green) */}
+                      {/* سداد مبكر ومخالصة */}
                       {remaining > 0 && (
                         <button
                           onClick={() => setEarlySettlementModal({
@@ -783,26 +777,26 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                             discount: '0',
                             deviceName: ctr.device_name
                           })}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition active:scale-95"
+                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                           <span>سداد مبكر</span>
                         </button>
                       )}
 
-                      {/* كشف العقد (Blue) */}
+                      {/* كشف العقد */}
                       <button
                         onClick={() => {
                           setSelectedContractForStatement(ctr);
                           setIsStatementModalOpen(true);
                         }}
-                        className="px-3.5 py-1.5 rounded-xl bg-blue-600/90 hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                       >
                         <FileSpreadsheet className="w-3.5 h-3.5" />
                         <span>كشف العقد</span>
                       </button>
 
-                      {/* تعديل العقد (Amber/Orange) */}
+                      {/* تعديل */}
                       <button
                         onClick={() => {
                           setEditContractIdx(ctrIdx);
@@ -812,16 +806,16 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                           setEditRemainingBalance(String(ctr.remaining_balance || ''));
                           setIsEditContractModalOpen(true);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         <span>تعديل</span>
                       </button>
 
-                      {/* حذف العقد (Red) */}
+                      {/* حذف */}
                       <button
                         onClick={() => handleDeleteContract(ctrIdx)}
-                        className="px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
+                        className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>حذف</span>
@@ -829,12 +823,12 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Section: جدول الأقساط (Dark sleek rows matching user screenshot) */}
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <div className="flex items-center justify-between text-xs text-slate-400 font-bold mb-2">
-                      <span className="flex items-center gap-1.5 text-slate-200">
-                        <Calendar className="w-4 h-4 text-cyan-400" />
-                        جدول الأقساط ({ctr.installments?.length || 0} قسط):
+                  {/* Section: جدول الأقساط (RTL: Payment buttons on the right, numbers in English) */}
+                  <div className="space-y-2.5 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
+                      <span className="flex items-center gap-1.5 text-slate-800">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        جدول الأقساط ({formatNum(ctr.installments?.length || 0)} قسط):
                       </span>
                     </div>
 
@@ -848,128 +842,137 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                         return (
                           <div
                             key={instIdx}
-                            className={`p-3 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                            className={`p-3.5 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                               isPaid
-                                ? 'bg-slate-900/50 border-emerald-900/40 text-slate-300'
+                                ? 'bg-slate-50/60 border-slate-200 text-slate-500'
                                 : isPostponed
-                                ? 'bg-purple-950/20 border-purple-800/40 text-slate-100'
-                                : 'bg-slate-900 border-slate-800 text-slate-100 hover:border-slate-700'
+                                ? 'bg-purple-50/40 border-purple-200 text-slate-800'
+                                : 'bg-white border-slate-200/90 text-slate-900 hover:border-primary/40 shadow-sm'
                             }`}
                           >
-                            {/* Left Side: Installment Actions Group matching user screenshot */}
-                            {/* [تأجيل] [زائد] [سريع] [🟢 واتساب] [نقطة الحالة / متأخر] */}
-                            <div className="flex items-center gap-2 flex-wrap order-2 sm:order-1">
-                              {/* Status Tag */}
+                            {/* RIGHT-TO-LEFT ROW: رقم القسط، المبلغ بالإنجليزي، التاريخ، الحالة، ثم أزرار السداد على اليمين */}
+                            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                              {/* 1. Installment Badge */}
+                              <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-900 font-mono font-bold text-xs">
+                                {isDownPayment ? 'مقدم' : `#${instIdx}`}
+                              </span>
+
+                              {/* 2. Amount in English */}
+                              <div className="font-mono font-black text-sm text-slate-900 flex items-center gap-1">
+                                <span>{formatCurrency(inst.due_amount)}</span>
+                              </div>
+
+                              {/* 3. Due Date in English */}
+                              <div className="text-xs text-slate-500 font-mono flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                <span>{inst.due_date || '-'}</span>
+                              </div>
+
+                              {/* 4. Status Badge */}
                               {isPaid ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                  <CheckCircle2 className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                   مسدد
                                 </span>
                               ) : isPostponed ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                  <Calendar className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                                  <Calendar className="w-3.5 h-3.5 text-purple-600" />
                                   مؤجل لـ {inst.due_date}
                                 </span>
                               ) : isPartial ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                  سداد جزئي ({inst.paid_amount} ج.م)
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                  سداد جزئي ({formatCurrency(inst.paid_amount)})
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
                                   متأخر
                                 </span>
                               )}
 
-                              {/* 1. Postpone Button (تأجيل) */}
+                              {/* 5. PAYMENT ACTION BUTTONS (ثم أزرار السداد على اليمين مباشرة) */}
                               {!isPaid && (
-                                <button
-                                  onClick={() => {
-                                    const nextM = new Date();
-                                    nextM.setMonth(nextM.getMonth() + 1);
-                                    setPostponeModal({
+                                <div className="flex items-center gap-1.5 mr-1">
+                                  {/* Fast Pay (سريع) */}
+                                  <button
+                                    onClick={() => handleFastPayInstallment(ctrIdx, instIdx)}
+                                    title="سداد فوري للقسط بالكامل وتوريده للدرج"
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm active:scale-95 flex items-center gap-1"
+                                  >
+                                    <Zap className="w-3 h-3 fill-current" />
+                                    <span>سريع</span>
+                                  </button>
+
+                                  {/* Partial Pay (زائد) */}
+                                  <button
+                                    onClick={() => setPartialModal({
                                       isOpen: true,
                                       contractIndex: ctrIdx,
                                       instIndex: instIdx,
-                                      newDueDate: nextM.toISOString().slice(0, 10),
-                                      reason: ''
-                                    });
-                                  }}
-                                  title="تأجيل موعد استحقاق القسط"
-                                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-xs transition active:scale-95"
-                                >
-                                  تأجيل
-                                </button>
-                              )}
+                                      amount: '',
+                                      maxAmount: inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
+                                      currentDue: inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
+                                    })}
+                                    title="سداد جزئي أو دفعة إضافية"
+                                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs transition active:scale-95"
+                                  >
+                                    <span>زائد</span>
+                                  </button>
 
-                              {/* 2. Partial Pay Button (زائد) */}
-                              {!isPaid && (
-                                <button
-                                  onClick={() => setPartialModal({
-                                    isOpen: true,
-                                    contractIndex: ctrIdx,
-                                    instIndex: instIdx,
-                                    amount: '',
-                                    maxAmount: inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
-                                    currentDue: inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
-                                  })}
-                                  title="سداد جزئي أو دفعة إضافية"
-                                  className="px-2.5 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 font-bold text-xs transition active:scale-95"
-                                >
-                                  زائد
-                                </button>
-                              )}
+                                  {/* Postpone (تأجيل) */}
+                                  <button
+                                    onClick={() => {
+                                      const nextM = new Date();
+                                      nextM.setMonth(nextM.getMonth() + 1);
+                                      setPostponeModal({
+                                        isOpen: true,
+                                        contractIndex: ctrIdx,
+                                        instIndex: instIdx,
+                                        newDueDate: nextM.toISOString().slice(0, 10),
+                                        reason: ''
+                                      });
+                                    }}
+                                    title="تأجيل موعد استحقاق القسط"
+                                    className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs transition active:scale-95"
+                                  >
+                                    <span>تأجيل</span>
+                                  </button>
 
-                              {/* 3. Fast Pay Button (سريع) */}
-                              {!isPaid && (
-                                <button
-                                  onClick={() => handleFastPayInstallment(ctrIdx, instIdx)}
-                                  title="سداد فوري للقسط بالكامل"
-                                  className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition shadow-sm active:scale-95 flex items-center gap-1"
-                                >
-                                  <Zap className="w-3.5 h-3.5 fill-current" />
-                                  سريع
-                                </button>
-                              )}
-
-                              {/* 4. WhatsApp Reminder Button (🟢 واتساب) */}
-                              {selectedCustomer.phone && (
-                                <button
-                                  onClick={() => openWhatsAppReminder(
-                                    selectedCustomer.phone,
-                                    selectedCustomer.name,
-                                    inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
-                                    inst.due_date || '-',
-                                    ctr.device_name
+                                  {/* WhatsApp Reminder Button */}
+                                  {selectedCustomer.phone && (
+                                    <button
+                                      onClick={() => openWhatsAppReminder(
+                                        selectedCustomer.phone,
+                                        selectedCustomer.name,
+                                        inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
+                                        inst.due_date || '-',
+                                        ctr.device_name
+                                      )}
+                                      title="إرسال تذكير عبر واتساب"
+                                      className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition active:scale-95"
+                                    >
+                                      <MessageCircle className="w-3.5 h-3.5" />
+                                    </button>
                                   )}
-                                  title="إرسال تذكير عبر واتساب"
-                                  className="p-1.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/40 transition active:scale-95"
-                                >
-                                  <MessageCircle className="w-4 h-4" />
-                                </button>
+                                </div>
                               )}
                             </div>
 
-                            {/* Right Side: Installment details matching reference screenshot */}
-                            {/* [تاريخ الاستحقاق]  [المبلغ ج.م •]  [#1] */}
-                            <div className="flex items-center justify-between sm:justify-end gap-4 text-right order-1 sm:order-2">
-                              <div className="space-y-0.5">
-                                <div className="flex items-center justify-end gap-2">
-                                  <span className="text-base font-black font-mono text-slate-100">
-                                    {inst.due_amount?.toLocaleString('ar-EG')} <span className="text-[11px] text-slate-400">ج.م</span>
-                                  </span>
-                                  <span className={`w-2 h-2 rounded-full ${
-                                    isPaid ? 'bg-emerald-400' : isPostponed ? 'bg-purple-400' : 'bg-rose-500'
-                                  }`}></span>
-                                </div>
-                                <div className="text-[11px] text-slate-400 font-mono">
-                                  {inst.due_date || '-'}
-                                </div>
-                              </div>
-
-                              <span className="text-xs font-mono font-bold text-slate-400 px-2 py-1 rounded-lg bg-slate-800">
-                                {isDownPayment ? 'مقدم' : `#${instIdx}`}
-                              </span>
+                            {/* LEFT SIDE (أقصى اليسار): توضيح إضافي إن وجد */}
+                            <div className="flex items-center justify-end font-mono text-xs">
+                              {isPaid ? (
+                                <span className="text-emerald-700 font-bold bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                  مسدد بالكامل ✓
+                                </span>
+                              ) : isPartial ? (
+                                <span className="text-blue-700 font-bold">
+                                  المتبقي: {formatCurrency(inst.remaining_amount)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">
+                                  {ctr.device_name}
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
@@ -983,7 +986,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         </div>
 
         {/* Modals */}
-        {/* 1. PDF Statement Modal */}
         <StatementModal
           isOpen={isStatementModalOpen}
           onClose={() => setIsStatementModalOpen(false)}
@@ -991,7 +993,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           contract={selectedContractForStatement}
         />
 
-        {/* 2. Promissory Note Modal */}
         <PromissoryNoteModal
           isOpen={isPromissoryModalOpen}
           onClose={() => setIsPromissoryModalOpen(false)}
@@ -999,10 +1000,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           contract={selectedContractForPromissory}
         />
 
-        {/* 3. Add Contract Modal with OPEN manual typing for months */}
+        {/* Add Contract Modal */}
         {isNewContractModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 text-slate-900 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <PlusCircle className="w-5 h-5 text-primary" />
@@ -1034,7 +1035,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       value={addCtrCashPrice}
                       onChange={(e) => setAddCtrCashPrice(e.target.value)}
                       placeholder="0"
-                      className="w-full p-2.5 rounded-xl border border-slate-300"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                     />
                   </div>
                   <div>
@@ -1045,7 +1046,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       value={addCtrInstPrice}
                       onChange={(e) => setAddCtrInstPrice(e.target.value)}
                       placeholder="مثال: 12000"
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold font-mono"
                     />
                   </div>
                 </div>
@@ -1058,12 +1059,11 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       value={addCtrDownPay}
                       onChange={(e) => setAddCtrDownPay(e.target.value)}
                       placeholder="0"
-                      className="w-full p-2.5 rounded-xl border border-slate-300"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                     />
                   </div>
-                  {/* OPEN MANUAL TYPING FOR MONTHS */}
                   <div>
-                    <label className="font-bold block text-slate-700 mb-1">عدد الشهور (كتابة يدوي) *</label>
+                    <label className="font-bold block text-slate-700 mb-1">عدد الشهور (يدوي) *</label>
                     <input
                       type="number"
                       min="1"
@@ -1071,17 +1071,16 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       required
                       value={addCtrMonths}
                       onChange={(e) => setAddCtrMonths(e.target.value)}
-                      placeholder="أدخل عدد الشهور (مثال: 6 أو 10 أو 18)"
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-primary focus:ring-2 focus:ring-primary/20"
+                      placeholder="مثال: 6 أو 10 أو 18"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold font-mono text-primary"
                     />
                   </div>
                 </div>
 
-                {/* Calculation preview */}
                 {parseFloat(addCtrInstPrice) > 0 && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px]">
-                    <span>المتبقي: <strong>{(parseFloat(addCtrInstPrice) - (parseFloat(addCtrDownPay) || 0)).toLocaleString('ar-EG')} ج.م</strong></span>
-                    <span>القسط الشهري التقريبي: <strong className="text-primary">{Math.round((parseFloat(addCtrInstPrice) - (parseFloat(addCtrDownPay) || 0)) / Math.max(parseInt(addCtrMonths) || 1, 1)).toLocaleString('ar-EG')} ج.م/شهر</strong></span>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-mono">
+                    <span>المتبقي: <strong>{formatCurrency(parseFloat(addCtrInstPrice) - (parseFloat(addCtrDownPay) || 0))}</strong></span>
+                    <span>القسط الشهري: <strong className="text-primary">{formatCurrency(Math.round((parseFloat(addCtrInstPrice) - (parseFloat(addCtrDownPay) || 0)) / Math.max(parseInt(addCtrMonths) || 1, 1)))}</strong></span>
                   </div>
                 )}
 
@@ -1091,7 +1090,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     type="date"
                     value={addCtrFirstDueDate}
                     onChange={(e) => setAddCtrFirstDueDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                   />
                 </div>
 
@@ -1107,7 +1106,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow"
                   >
-                    حفظ وإصدار جدول الأقساط
+                    حفظ العقد
                   </button>
                 </div>
               </form>
@@ -1115,10 +1114,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         )}
 
-        {/* 4. Edit Contract Modal */}
+        {/* Edit Contract Modal */}
         {isEditContractModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 text-slate-900 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <Edit3 className="w-5 h-5 text-amber-600" />
@@ -1146,7 +1145,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       type="number"
                       value={editCashPrice}
                       onChange={(e) => setEditCashPrice(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                     />
                   </div>
                   <div>
@@ -1155,7 +1154,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       type="number"
                       value={editInstPrice}
                       onChange={(e) => setEditInstPrice(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                     />
                   </div>
                 </div>
@@ -1165,7 +1164,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     type="number"
                     value={editRemainingBalance}
                     onChange={(e) => setEditRemainingBalance(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-black text-primary"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-black text-primary font-mono"
                   />
                 </div>
                 <div className="pt-2 flex items-center justify-end gap-2">
@@ -1188,10 +1187,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         )}
 
-        {/* 5. Partial Payment Modal */}
+        {/* Partial Payment Modal */}
         {partialModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-slate-900 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-blue-600" />
@@ -1203,11 +1202,9 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               </div>
 
               <form onSubmit={handlePartialPaymentSubmit} className="space-y-3 text-xs">
-                <div className="p-3 rounded-xl bg-blue-50 text-blue-900">
-                  <div className="flex justify-between font-bold">
-                    <span>المبلغ المستحق للقسط:</span>
-                    <span>{partialModal.currentDue?.toLocaleString('ar-EG')} ج.م</span>
-                  </div>
+                <div className="p-3 rounded-xl bg-blue-50 text-blue-900 font-mono flex justify-between font-bold">
+                  <span>المبلغ المستحق للقسط:</span>
+                  <span>{formatCurrency(partialModal.currentDue)}</span>
                 </div>
 
                 <div>
@@ -1220,10 +1217,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     value={partialModal.amount}
                     onChange={(e) => setPartialModal({ ...partialModal, amount: e.target.value })}
                     placeholder="مثال: 500"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-black text-base text-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-black text-base text-blue-600 font-mono"
                   />
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    الحد الأقصى للسداد الجزئي: {partialModal.maxAmount} ج.م
+                  <span className="text-xs text-slate-500 mt-1 block font-mono">
+                    الحد الأقصى للسداد: {formatCurrency(partialModal.maxAmount)}
                   </span>
                 </div>
 
@@ -1247,10 +1244,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         )}
 
-        {/* 6. Postpone Modal */}
+        {/* Postpone Modal */}
         {postponeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-slate-900 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-amber-600" />
@@ -1279,7 +1276,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     rows={2}
                     value={postponeModal.reason}
                     onChange={(e) => setPostponeModal({ ...postponeModal, reason: e.target.value })}
-                    placeholder="مثال: طلب العميل التأجيل لظروف السفر أو استلام الراتب"
+                    placeholder="مثال: طلب العميل التأجيل لظروف السفر"
                     className="w-full p-2.5 rounded-xl border border-slate-300"
                   />
                 </div>
@@ -1304,10 +1301,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
           </div>
         )}
 
-        {/* 7. Early Settlement Modal */}
+        {/* Early Settlement Modal */}
         {earlySettlementModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 text-slate-900 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-base flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-600" />
@@ -1319,14 +1316,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               </div>
 
               <form onSubmit={handleEarlySettlementSubmit} className="space-y-3.5 text-xs">
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-1.5">
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-1.5 font-mono">
                   <div className="flex justify-between font-bold text-slate-700">
                     <span>الجهاز / العقد:</span>
                     <span>{earlySettlementModal.deviceName}</span>
                   </div>
                   <div className="flex justify-between font-bold text-slate-700">
-                    <span>إجمالي المديونية المتبقية:</span>
-                    <span className="font-mono text-base text-slate-900">{earlySettlementModal.totalRemaining.toLocaleString('ar-EG')} ج.م</span>
+                    <span>إجمالي المتبقي:</span>
+                    <span className="text-base text-slate-900">{formatCurrency(earlySettlementModal.totalRemaining)}</span>
                   </div>
                 </div>
 
@@ -1337,14 +1334,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     value={earlySettlementModal.discount}
                     onChange={(e) => setEarlySettlementModal({ ...earlySettlementModal, discount: e.target.value })}
                     placeholder="0"
-                    className="w-full p-2.5 rounded-xl border border-slate-300"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex justify-between items-center">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex justify-between items-center font-mono">
                   <span className="font-bold">المطلوب تحصيله كاش للمخالصة:</span>
-                  <span className="text-lg font-black font-mono">
-                    {Math.max(earlySettlementModal.totalRemaining - (parseFloat(earlySettlementModal.discount) || 0), 0).toLocaleString('ar-EG')} ج.م
+                  <span className="text-lg font-black">
+                    {formatCurrency(Math.max(earlySettlementModal.totalRemaining - (parseFloat(earlySettlementModal.discount) || 0), 0))}
                   </span>
                 </div>
 
@@ -1372,28 +1369,28 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   }
 
   // =========================================================================
-  // VIEW: MAIN CUSTOMERS LIST TABLE & TOOLBAR
+  // VIEW: MAIN CUSTOMERS LIST TABLE (NO CUSTOMER CODE, English numbers)
   // =========================================================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-5" dir="rtl">
       {/* Top Header & Actions Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
-            سجل عملاء وعقود سنترال
+            سجل العملاء وعقود التقسيط
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            إدارة كاملة للعملاء والضامنين، جداول الأقساط، التصدير والاستيراد من وإلى Excel.
+            إدارة مباشرة لبيانات العملاء والضامنين، جداول الأقساط، والتصدير والاستيراد من Excel.
           </p>
         </div>
 
-        {/* Action Buttons: Add Customer, Export Excel, Import Excel */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Export to Excel */}
           <button
             onClick={() => excelService.exportCentralDataToExcel(customersData)}
-            className="px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow transition active:scale-95"
+            className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition active:scale-95"
           >
             <Download className="w-4 h-4" />
             <span>تصدير Excel (.xlsx)</span>
@@ -1406,16 +1403,16 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               setImportSuccessMsg('');
               setIsImportModalOpen(true);
             }}
-            className="px-3.5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition active:scale-95"
+            className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 border border-slate-200 transition active:scale-95"
           >
-            <Upload className="w-4 h-4 text-cyan-400" />
+            <Upload className="w-4 h-4 text-primary" />
             <span>استيراد Excel</span>
           </button>
 
           {/* Add Customer Button */}
           <button
             onClick={openAddCustomerModal}
-            className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-primary/20 transition active:scale-95"
+            className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center gap-2 shadow transition active:scale-95"
           >
             <UserPlus className="w-4 h-4" />
             <span>إضافة عميل جديد</span>
@@ -1423,31 +1420,31 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Search Bar (NO customer code in placeholder) */}
       <div className="relative">
         <Search className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="ابحث باسم العميل، رقم الهاتف، كود العميل، أو الرقم القومي (14 رقم)..."
-          className="w-full pr-12 pl-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
+          placeholder="ابحث باسم العميل، رقم الهاتف، أو الرقم القومي (14 رقم)..."
+          className="w-full pr-12 pl-4 py-3 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
         />
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Customers Table (NO CUSTOMER CODE COLUMN) */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
               <tr>
-                <th className="p-4">كود العميل</th>
-                <th className="p-4">اسم العميل</th>
-                <th className="p-4">رقم الهاتف</th>
-                <th className="p-4">العقود والسلع</th>
-                <th className="p-4">إجمالي المتبقي</th>
-                <th className="p-4">الحالة الائتمانية</th>
-                <th className="p-4 text-center">الإجراءات</th>
+                <th className="p-3.5">اسم العميل</th>
+                <th className="p-3.5">رقم الهاتف</th>
+                <th className="p-3.5">الرقم القومي</th>
+                <th className="p-3.5">العقود والسلع</th>
+                <th className="p-3.5">إجمالي المتبقي</th>
+                <th className="p-3.5">الحالة</th>
+                <th className="p-3.5 text-center">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -1474,41 +1471,36 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       onClick={() => setSelectedCustomer(c)}
                       className="hover:bg-slate-50/80 transition cursor-pointer"
                     >
-                      <td className="p-4 font-mono font-bold text-slate-600">
-                        {c.code || `CUS-${(idx + 1).toString().padStart(5, '0')}`}
-                      </td>
-                      <td className="p-4 font-bold text-slate-900 text-sm">
+                      <td className="p-3.5 font-bold text-slate-900 text-sm">
                         {c.name}
-                        {c.national_id && (
-                          <span className="block text-[11px] text-slate-400 font-mono font-normal">
-                            قومي: {c.national_id}
-                          </span>
-                        )}
                       </td>
-                      <td className="p-4 text-slate-600 font-mono">
+                      <td className="p-3.5 text-slate-600 font-mono">
                         {c.phone || '-'}
                       </td>
-                      <td className="p-4 text-slate-700 font-medium">
-                        {c.contracts?.length || 0} عقد
+                      <td className="p-3.5 text-slate-500 font-mono">
+                        {c.national_id || '-'}
+                      </td>
+                      <td className="p-3.5 text-slate-700 font-medium">
+                        {formatNum(c.contracts?.length || 0)} عقد
                         {c.contracts?.[0]?.device_name && ` (${c.contracts[0].device_name})`}
                       </td>
-                      <td className="p-4 font-black font-mono text-sm text-slate-900">
-                        {rem.toLocaleString('ar-EG')} ج.م
+                      <td className="p-3.5 font-black font-mono text-sm text-slate-900">
+                        {formatCurrency(rem)}
                       </td>
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
                           isDefaulted ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                         }`}>
                           {isDefaulted ? 'متعثر ائتمانياً' : 'نشط وملتزم'}
                         </span>
                       </td>
-                      <td className="p-4 text-center">
+                      <td className="p-3.5 text-center">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedCustomer(c);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1 transition"
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs inline-flex items-center gap-1 transition"
                         >
                           عرض الملف
                           <ChevronLeft className="w-3.5 h-3.5" />
@@ -1523,14 +1515,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
         </div>
       </div>
 
-      {/* Add Customer Modal */}
+      {/* Add Customer Modal (NO CUSTOMER CODE) */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 space-y-4 text-slate-900 border border-slate-200 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4 text-slate-900 border border-slate-200 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-primary" />
-                إضافة عميل وضامن جديد للسنترال
+                إضافة عميل جديد
               </h3>
               <button onClick={() => setIsAddModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-100">
                 <X className="w-5 h-5 text-slate-400" />
@@ -1538,27 +1530,16 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
             </div>
 
             <form onSubmit={handleCreateCustomer} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold block text-slate-700 mb-1">كود العميل</label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={newCustCode}
-                    className="w-full p-2.5 rounded-xl bg-slate-100 border border-slate-200 font-mono font-bold text-slate-600"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="font-bold block text-slate-700 mb-1">اسم العميل بالكامل *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newCustName}
-                    onChange={(e) => setNewCustName(e.target.value)}
-                    placeholder="الاسم الثلاثي أو الرباعي"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
+              <div>
+                <label className="font-bold block text-slate-700 mb-1">اسم العميل بالكامل *</label>
+                <input
+                  type="text"
+                  required
+                  value={newCustName}
+                  onChange={(e) => setNewCustName(e.target.value)}
+                  placeholder="الاسم الثلاثي أو الرباعي"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-primary/20"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1608,7 +1589,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               </div>
 
               {/* Guarantor Section */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <span className="font-bold text-slate-800 block text-xs flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-primary" />
                   بيانات الضامن (اختياري):
@@ -1640,15 +1621,15 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       type="text"
                       value={newGuarantorRel}
                       onChange={(e) => setNewGuarantorRel(e.target.value)}
-                      placeholder="أخ، والد، صديق..."
+                      placeholder="أخ، والد..."
                       className="w-full p-2 rounded-lg border border-slate-300 bg-white"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Initial Installment Contract (OPEN manual typing for months) */}
-              <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-3">
+              {/* Initial Contract Section (OPEN manual typing for months) */}
+              <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-blue-950 flex items-center gap-1.5">
                     <Smartphone className="w-4 h-4 text-primary" />
@@ -1666,7 +1647,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                   <div className="space-y-3 pt-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 block mb-1">اسم الجهاز / السلعة *</label>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">اسم الجهاز *</label>
                         <input
                           type="text"
                           required={includeContract}
@@ -1720,7 +1701,6 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                           className="w-full p-2 rounded-lg border border-slate-300 bg-white font-mono"
                         />
                       </div>
-                      {/* OPEN MANUAL TYPING FOR MONTHS */}
                       <div>
                         <label className="text-[11px] font-bold text-slate-700 block mb-1">عدد الشهور (يدوي) *</label>
                         <input
@@ -1736,11 +1716,10 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Preview Calculation */}
                     {parseFloat(newInstallmentPrice) > 0 && (
-                      <div className="p-2.5 rounded-xl bg-white border border-blue-200 flex items-center justify-between text-[11px]">
-                        <span>المتبقي: <strong>{(parseFloat(newInstallmentPrice) - (parseFloat(newDownPayment) || 0)).toLocaleString('ar-EG')} ج.م</strong></span>
-                        <span>القسط الشهري: <strong className="text-primary">{Math.round((parseFloat(newInstallmentPrice) - (parseFloat(newDownPayment) || 0)) / Math.max(parseInt(newMonthsCount) || 1, 1)).toLocaleString('ar-EG')} ج.م</strong></span>
+                      <div className="p-2.5 rounded-xl bg-white border border-blue-200 flex items-center justify-between text-xs font-mono">
+                        <span>المتبقي: <strong>{formatCurrency(parseFloat(newInstallmentPrice) - (parseFloat(newDownPayment) || 0))}</strong></span>
+                        <span>القسط الشهري: <strong className="text-primary">{formatCurrency(Math.round((parseFloat(newInstallmentPrice) - (parseFloat(newDownPayment) || 0)) / Math.max(parseInt(newMonthsCount) || 1, 1)))}</strong></span>
                       </div>
                     )}
                   </div>
@@ -1757,9 +1736,9 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/20"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow"
                 >
-                  حفظ العميل والعقد بنجاح
+                  حفظ العميل بنجاح
                 </button>
               </div>
             </form>
@@ -1769,8 +1748,8 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
 
       {/* Import from Excel Modal */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 text-slate-900 border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
@@ -1787,14 +1766,14 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               </p>
 
               {/* Template Download */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <span className="font-bold text-slate-800 block">نموذج الإكسل الجاهز:</span>
                   <span className="text-[11px] text-slate-500">حمل النموذج الفارغ لتعبئة بياناتك عليه بكل سهولة</span>
                 </div>
                 <button
                   onClick={() => excelService.downloadImportTemplate()}
-                  className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center gap-1"
                 >
                   <Download className="w-3.5 h-3.5" />
                   تحميل النموذج
@@ -1802,7 +1781,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
               </div>
 
               {/* Upload Input */}
-              <div className="border-2 border-dashed border-slate-300 hover:border-primary/50 rounded-2xl p-6 text-center space-y-2 cursor-pointer bg-slate-50/50">
+              <div className="border-2 border-dashed border-slate-300 hover:border-primary/50 rounded-xl p-6 text-center space-y-2 cursor-pointer bg-slate-50/50">
                 <Upload className="w-8 h-8 text-slate-400 mx-auto" />
                 <label className="block font-bold text-slate-800 cursor-pointer">
                   اختر ملف Excel (.xlsx أو .xls)

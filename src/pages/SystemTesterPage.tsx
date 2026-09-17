@@ -133,7 +133,7 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           ...t,
           status: 'passed',
           executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم تأجيل استحقاق القسط إلى تاريخ [${nextMonth.toLocaleDateString('ar-EG')}] وحفظ سبب التأجيل وسجل المتابعة.`
+          resultMessage: `تم بنجاح: تم تأجيل استحقاق القسط إلى تاريخ [${nextMonth.toISOString().slice(0, 10)}] وحفظ سبب التأجيل وسجل المتابعة.`
         } : t));
       } else if (testId === 'early_settlement') {
         // Test Early Payoff
@@ -145,10 +145,8 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           resultMessage: 'تم بنجاح: تم عمل مخالصة نهائية وتسوية 3,500 ج.م مع خصم تعجيل 200 ج.م، وتصفير رصيد العقد بالكامل.'
         } : t));
       } else if (testId === 'create_customer') {
-        // Test Customer with code & National ID
-        const testCode = `CUS-TST-${Math.floor(1000 + Math.random() * 9000)}`;
+        // Test Customer with National ID & Guarantor (NO customer code)
         const testCustomer = {
-          code: testCode,
           name: 'عميل اختبار تجريبي',
           phone: '01012345678',
           national_id: '29801011234567',
@@ -166,7 +164,7 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           ...t,
           status: 'passed',
           executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم تكويد العميل بكود [${testCode}] وتوثيق الرقم القومي والضامن وإتاحته للبحث الفوري.`
+          resultMessage: `تم بنجاح: تم تسجيل العميل بالاسم والرقم القومي والضامن وإتاحته للبحث الفوري.`
         } : t));
       } else if (testId === 'treasury_transfers') {
         // Test Treasury deposit & transfer
@@ -178,7 +176,7 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           ...t,
           status: 'passed',
           executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم فحص رصيد درج الكاشير (${Number(drawer?.current_balance || 35420).toLocaleString('ar-EG')} ج.م) والتحقق من جاهزية التحويل لمحافظ الكاش وماكينات فوري.`
+          resultMessage: `تم بنجاح: تم فحص رصيد درج الكاشير (${Number(drawer?.current_balance || 35420).toLocaleString('en-US')} ج.م) والتحقق من جاهزية التحويل لمحافظ الكاش وماكينات فوري.`
         } : t));
       } else if (testId === 'financial_reports') {
         // Test reports
@@ -188,7 +186,7 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           ...t,
           status: 'passed',
           executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: إجمالي العقود النشطة [${m.totalContractsValue?.toLocaleString('ar-EG')} ج.م]، المتبقي [${m.totalRemainingDebt?.toLocaleString('ar-EG')} ج.م]، والبيانات جاهزة للتصدير.`
+          resultMessage: `تم بنجاح: إجمالي العقود النشطة [${m.totalContractsValue?.toLocaleString('en-US')} ج.م]، المتبقي [${m.totalRemainingDebt?.toLocaleString('en-US')} ج.م]، والبيانات جاهزة للتصدير.`
         } : t));
       }
     } catch (err: any) {

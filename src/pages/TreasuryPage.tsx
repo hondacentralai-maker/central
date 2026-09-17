@@ -191,8 +191,8 @@ export const TreasuryPage: React.FC = () => {
             <span className="text-xs font-bold">الدرج النقدي الرئيسي (الكاش الفعلي)</span>
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
-          <div className="text-3xl font-black text-slate-900">
-            {drawerBal.toLocaleString('ar-EG')} <span className="text-sm font-bold text-slate-500">ج.م</span>
+          <div className="text-3xl font-black text-slate-900 font-mono">
+            {drawerBal.toLocaleString('en-US')} <span className="text-sm font-bold text-slate-500">ج.م</span>
           </div>
           <p className="text-xs text-slate-400 mt-2">رصيد حي موثق في قاعدة البيانات</p>
         </div>
@@ -203,19 +203,19 @@ export const TreasuryPage: React.FC = () => {
             <span className="text-xs font-bold">العهدة الإضافية للمحل</span>
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
           </div>
-          <div className="text-3xl font-black text-slate-900">
-            {custodyBal.toLocaleString('ar-EG')} <span className="text-sm font-bold text-slate-500">ج.م</span>
+          <div className="text-3xl font-black text-slate-900 font-mono">
+            {custodyBal.toLocaleString('en-US')} <span className="text-sm font-bold text-slate-500">ج.م</span>
           </div>
           <p className="text-xs text-slate-400 mt-2">عهدة احتياطية ومصروفات الطوارئ</p>
         </div>
 
-        {/* Total Cash in Hand */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-sm">
-          <div className="text-xs text-slate-300 mb-2">إجمالي النقدية المتوفرة حالياً</div>
-          <div className="text-3xl font-black text-white">
-            {(drawerBal + custodyBal).toLocaleString('ar-EG')} <span className="text-sm font-bold text-slate-400">ج.م</span>
+        {/* Total Cash in Hand (Clean White Theme with subtle Primary Border) */}
+        <div className="p-5 rounded-2xl bg-white border-2 border-primary/30 shadow-sm">
+          <div className="text-xs text-primary font-bold mb-2">إجمالي النقدية المتوفرة حالياً</div>
+          <div className="text-3xl font-black text-slate-900 font-mono">
+            {(drawerBal + custodyBal).toLocaleString('en-US')} <span className="text-sm font-bold text-primary">ج.م</span>
           </div>
-          <p className="text-xs text-slate-400 mt-2">نقدية الدرج + العهدة الاحتياطية</p>
+          <p className="text-xs text-slate-500 mt-2">نقدية الدرج + العهدة الاحتياطية</p>
         </div>
       </div>
 
@@ -253,17 +253,17 @@ export const TreasuryPage: React.FC = () => {
                         {m.description || (isPositive ? 'إيداع نقدي بالدرج' : 'صرف نقدية')}
                       </div>
                       <div className="text-[11px] text-slate-400 font-mono">
-                        {m.created_at ? new Date(m.created_at).toLocaleString('ar-EG') : '-'}
+                        {m.created_at ? new Date(m.created_at).toLocaleString('en-US') : '-'}
                       </div>
                     </div>
                   </div>
 
                   <div className="text-left">
                     <div className={`font-black text-sm ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {isPositive ? '+' : ''}{Number(m.amount).toLocaleString('ar-EG')} ج.م
+                      {isPositive ? '+' : ''}{Number(m.amount).toLocaleString('en-US')} ج.م
                     </div>
                     <div className="text-[10px] text-slate-400">
-                      الرصيد بعدها: {Number(m.balance_after || 0).toLocaleString('ar-EG')} ج.م
+                      الرصيد بعدها: {Number(m.balance_after || 0).toLocaleString('en-US')} ج.م
                     </div>
                   </div>
                 </div>
@@ -328,12 +328,12 @@ export const TreasuryPage: React.FC = () => {
                       {transferTargetType === 'wallet'
                         ? wallets.map(w => (
                             <option key={w.id} value={w.id}>
-                              {w.account_label || w.phone_number} ({Number(w.current_balance || 0).toLocaleString('ar-EG')} ج.م)
+                              {w.account_label || w.phone_number} ({Number(w.current_balance || 0).toLocaleString('en-US')} ج.م)
                             </option>
                           ))
                         : posMachines.map(p => (
                             <option key={p.id} value={p.id}>
-                              {p.name} ({Number(p.current_balance || 0).toLocaleString('ar-EG')} ج.م)
+                              {p.name} ({Number(p.current_balance || 0).toLocaleString('en-US')} ج.م)
                             </option>
                           ))}
                     </select>

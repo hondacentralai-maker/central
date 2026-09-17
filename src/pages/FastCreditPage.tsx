@@ -66,8 +66,8 @@ export const FastCreditPage: React.FC = () => {
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
               <span className="text-slate-400">الرصيد الجاري:</span>
-              <span className="font-bold text-slate-800">
-                {acc.current_balance.toLocaleString('ar-EG')} ج.م
+              <span className="font-bold text-slate-800 font-mono">
+                {acc.current_balance.toLocaleString('en-US')} ج.م
               </span>
             </div>
           </div>
