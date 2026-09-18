@@ -13,9 +13,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { api } from '../services/api';
-import { Treasury, TreasuryTransaction, CashWallet, POSMachine } from '../types';
+import { Profile, Treasury, TreasuryTransaction, CashWallet, POSMachine } from '../types';
 
-export const TreasuryPage: React.FC = () => {
+export const TreasuryPage: React.FC<{ profile: Profile }> = ({ profile }) => {
   const [treasuries, setTreasuries] = useState<Treasury[]>([]);
   const [movements, setMovements] = useState<TreasuryTransaction[]>([]);
   const [wallets, setWallets] = useState<CashWallet[]>([]);
@@ -34,17 +34,8 @@ export const TreasuryPage: React.FC = () => {
   const [transferTargetType, setTransferTargetType] = useState<'wallet' | 'pos'>('wallet');
   const [transferTargetId, setTransferTargetId] = useState('');
 
-  const drawer = treasuries.find(t => t.treasury_type === 'drawer') || treasuries[0] || {
-    id: '00000000-0000-0000-0000-000000000002',
-    name: 'درج الكاشير الرئيسي',
-    current_balance: 35420
-  };
-
-  const custody = treasuries.find(t => t.treasury_type === 'custody') || {
-    id: '00000000-0000-0000-0000-000000000003',
-    name: 'العهدة الاحتياطية',
-    current_balance: 15000
-  };
+  const drawer = treasuries.find(t => t.treasury_type === 'drawer') || treasuries[0];
+  const custody = treasuries.find(t => t.treasury_type === 'custody');
 
   useEffect(() => {
     loadTreasuryData();
@@ -76,6 +67,10 @@ export const TreasuryPage: React.FC = () => {
     e.preventDefault();
     const num = parseFloat(amount);
     if (!num || num <= 0 || !modalType) return;
+    if (!profile.organization_id || !drawer) {
+      setErrorMsg('لا توجد خزينة فعالة مرتبطة بالمنشأة الحالية.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMsg('');
@@ -87,11 +82,12 @@ export const TreasuryPage: React.FC = () => {
         const defaultDesc = modalType === 'in' ? 'إيداع نقدية في الدرج' : 'صرف نقدية / مصروف';
         
         await api.recordTreasuryMovement({
-          organizationId: '00000000-0000-0000-0000-000000000001',
+          organizationId: profile.organization_id,
           treasuryId: drawer.id,
           type: type,
           amount: num,
           description: desc.trim() || defaultDesc,
+          userId: profile.id,
         });
 
         setSuccessMsg(modalType === 'in' ? 'تم تسجيل الإيداع وتحديث رصيد الدرج بنجاح.' : 'تم تسجيل الصرف وخصم المبلغ من الدرج.');
@@ -121,8 +117,8 @@ export const TreasuryPage: React.FC = () => {
     }
   };
 
-  const drawerBal = Number(drawer.current_balance || 0);
-  const custodyBal = Number(custody.current_balance || 0);
+  const drawerBal = Number(drawer?.current_balance || 0);
+  const custodyBal = Number(custody?.current_balance || 0);
 
   return (
     <div className="space-y-5" dir="rtl">
