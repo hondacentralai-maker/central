@@ -24,7 +24,7 @@ import {
   FileSpreadsheet,
   ChevronLeft,
   X,
-  MessageCircle,
+  MessageSquare,
   Zap
 } from 'lucide-react';
 
@@ -33,7 +33,6 @@ import { StatementModal } from '../components/StatementModal';
 import { PromissoryNoteModal } from '../components/PromissoryNoteModal';
 import { excelService } from '../services/excelService';
 import { api } from '../services/api';
-import { openWhatsAppReminder } from '../utils/whatsapp';
 
 // Helper for clean English numbers throughout the interface
 const formatNum = (num: number | undefined | null): string => {
@@ -132,6 +131,12 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     instIndex: number;
     newDueDate: string;
     reason: string;
+  } | null>(null);
+
+  const [installmentNoteModal, setInstallmentNoteModal] = useState<{
+    contractIndex: number;
+    instIndex: number;
+    text: string;
   } | null>(null);
 
   const [earlySettlementModal, setEarlySettlementModal] = useState<{
@@ -506,6 +511,21 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
     setPostponeModal(null);
   };
 
+  const handleInstallmentNoteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!installmentNoteModal || !selectedCustomer) return;
+
+    const updatedCust = { ...selectedCustomer };
+    const contract = updatedCust.contracts[installmentNoteModal.contractIndex];
+    const inst = contract.installments[installmentNoteModal.instIndex];
+    inst.notes = installmentNoteModal.text.trim();
+
+    const updatedList = customersData.map(c => c.name === selectedCustomer.name ? updatedCust : c);
+    persistCustomersState(updatedList);
+    setSelectedCustomer(updatedCust);
+    setInstallmentNoteModal(null);
+  };
+
   // Early Settlement Submit
   const handleEarlySettlementSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -851,7 +871,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                             }`}
                           >
                             {/* RIGHT-TO-LEFT ROW: رقم القسط، المبلغ بالإنجليزي، التاريخ، الحالة، ثم أزرار السداد على اليمين */}
-                            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                            <div className="flex items-center gap-3 sm:gap-4 flex-wrap" dir="rtl">
                               {/* 1. Installment Badge */}
                               <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-900 font-mono font-bold text-xs">
                                 {isDownPayment ? 'مقدم' : `#${instIdx}`}
@@ -892,7 +912,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
 
                               {/* 5. PAYMENT ACTION BUTTONS (ثم أزرار السداد على اليمين مباشرة) */}
                               {!isPaid && (
-                                <div className="flex items-center gap-1.5 mr-1">
+                                <div className="flex shrink-0 items-center gap-1.5 mr-1" dir="rtl" aria-label="إجراءات القسط">
                                   {/* Fast Pay (سريع) */}
                                   <button
                                     onClick={() => handleFastPayInstallment(ctrIdx, instIdx)}
@@ -938,22 +958,19 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                                     <span>تأجيل</span>
                                   </button>
 
-                                  {/* WhatsApp Reminder Button */}
-                                  {selectedCustomer.phone && (
-                                    <button
-                                      onClick={() => openWhatsAppReminder(
-                                        selectedCustomer.phone,
-                                        selectedCustomer.name,
-                                        inst.remaining_amount > 0 ? inst.remaining_amount : inst.due_amount,
-                                        inst.due_date || '-',
-                                        ctr.device_name
-                                      )}
-                                      title="إرسال تذكير عبر واتساب"
-                                      className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition active:scale-95"
-                                    >
-                                      <MessageCircle className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
+                                  {/* Installment note: visually the left-most action in RTL */}
+                                  <button
+                                    onClick={() => setInstallmentNoteModal({
+                                      contractIndex: ctrIdx,
+                                      instIndex,
+                                      text: inst.notes || '',
+                                    })}
+                                    title="إضافة أو تعديل ملاحظة القسط"
+                                    aria-label="إضافة أو تعديل ملاحظة القسط"
+                                    className={`p-1.5 rounded-lg border transition active:scale-95 ${inst.notes ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1294,6 +1311,46 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                     className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black"
                   >
                     اعتماد التأجيل
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Installment Note Modal */}
+        {installmentNoteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-slate-900 border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-base flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  ملاحظة على القسط
+                </h3>
+                <button type="button" onClick={() => setInstallmentNoteModal(null)} className="p-1 rounded-lg hover:bg-slate-100" aria-label="إغلاق">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleInstallmentNoteSubmit} className="space-y-3 text-xs">
+                <label className="font-bold block text-slate-700">
+                  تفاصيل القسط أو ملاحظة المحصل
+                  <textarea
+                    rows={4}
+                    autoFocus
+                    value={installmentNoteModal.text}
+                    onChange={(e) => setInstallmentNoteModal({ ...installmentNoteModal, text: e.target.value })}
+                    placeholder="مثال: العميل طلب التواصل بعد نزول المرتب"
+                    className="mt-1.5 w-full p-2.5 rounded-xl border border-slate-300 focus:border-primary focus:outline-none"
+                  />
+                </label>
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => setInstallmentNoteModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold">
+                    إلغاء
+                  </button>
+                  <button type="submit" className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-black">
+                    حفظ الملاحظة
                   </button>
                 </div>
               </form>
