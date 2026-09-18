@@ -30,7 +30,7 @@ export const StatementModal: React.FC<StatementModalProps> = ({
   });
 
   const statementNo = `STMT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const dateFormatted = new Date().toLocaleDateString('ar-EG', {
+    const dateFormatted = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
