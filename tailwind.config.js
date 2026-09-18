@@ -20,6 +20,7 @@ export default {
       },
       fontFamily: {
         sans: ['Cairo', 'system-ui', 'sans-serif'],
+        mono: ['Cairo', 'system-ui', 'sans-serif'],
       },
     },
   },
