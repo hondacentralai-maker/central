@@ -62,31 +62,6 @@ export default function App() {
     setProfileError('');
 
     if (!nextSession) {
-      // Check for multi-device local stored session
-      const stored = localStorage.getItem('central_user_session');
-      if (stored) {
-        try {
-          const user = JSON.parse(stored);
-          if (user && user.role) {
-            const localProfile: Profile = {
-              id: user.id || '00000000-0000-0000-0000-000000000001',
-              organization_id: '00000000-0000-0000-0000-000000000001',
-              branch_id: null,
-              full_name: user.name || 'مدير النظام',
-              phone: '01000000000',
-              role: user.role,
-              is_active: true,
-              branch: { name: 'الفرع الرئيسي', code: 'MAIN' },
-            };
-            setProfile(localProfile);
-            setActiveTab(getFirstAllowedTab(localProfile.role));
-            setAuthStatus('ready');
-            return;
-          }
-        } catch {
-          // ignore
-        }
-      }
       setAuthStatus('signed-out');
       return;
     }
@@ -114,23 +89,6 @@ export default function App() {
     }
 
     if (error || !nextProfile || !nextProfile.is_active || !nextProfile.organization_id) {
-      if (nextSession.user) {
-        const meta = nextSession.user.user_metadata || {};
-        const fallbackProfile: Profile = {
-          id: nextSession.user.id,
-          organization_id: meta.organization_id || '00000000-0000-0000-0000-000000000001',
-          branch_id: meta.branch_id || null,
-          full_name: meta.full_name || nextSession.user.email?.split('@')[0] || 'مدير النظام',
-          phone: meta.phone || null,
-          role: meta.role || 'admin',
-          is_active: true,
-          branch: { name: 'الفرع الرئيسي', code: 'MAIN' },
-        };
-        setProfile(fallbackProfile);
-        setActiveTab(getFirstAllowedTab(fallbackProfile.role));
-        setAuthStatus('ready');
-        return;
-      }
       setProfileError(error ? 'تعذر التحقق من صلاحية الملف الوظيفي.' : 'لا يوجد ملف مستخدم فعّال أو منشأة مرتبطة بالحساب.');
       setAuthStatus('profile-error');
       return;
@@ -149,25 +107,9 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, [hydrateSession]);
 
-  const handleLoginSuccess = (user?: { email: string; name: string; role: string }) => {
-    const role = user?.role || 'admin';
-    const profileData: Profile = {
-      id: '00000000-0000-0000-0000-000000000001',
-      organization_id: '00000000-0000-0000-0000-000000000001',
-      branch_id: null,
-      full_name: user?.name || 'مدير النظام',
-      phone: '01000000000',
-      role: role,
-      is_active: true,
-      branch: { name: 'الفرع الرئيسي', code: 'MAIN' },
-    };
-    setProfile(profileData);
-    setActiveTab(getFirstAllowedTab(role));
-    setAuthStatus('ready');
-  };
+  const handleLoginSuccess = () => setAuthStatus('checking');
 
   const handleSignOut = async () => {
-    localStorage.removeItem('central_user_session');
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
@@ -185,8 +127,8 @@ export default function App() {
   };
 
   if (authStatus === 'checking') {
-    return (
-      <main className="grid min-h-screen place-items-center bg-slate-950 text-white" dir="rtl" aria-live="polite">
+     return (
+       <main className="grid min-h-screen place-items-center bg-slate-50 text-slate-900" dir="rtl" aria-live="polite">
         <div className="flex items-center gap-3 text-sm font-bold">
           <Loader2 className="h-5 w-5 animate-spin text-blue-300" aria-hidden="true" />
           جارِ التحقق من الجلسة والصلاحيات...
@@ -229,12 +171,12 @@ export default function App() {
               initialCustomerTarget={targetCustomerForCustomersPage}
             />
           )}
-          {activeTab === 'treasury' && <TreasuryPage />}
+          {activeTab === 'treasury' && <TreasuryPage profile={profile} />}
           {activeTab === 'closing' && <DailyClosingPage />}
-          {activeTab === 'wallets' && <WalletsPage />}
-          {activeTab === 'pos' && <POSMachinesPage />}
-          {activeTab === 'fast_credit' && <FastCreditPage />}
-          {activeTab === 'suppliers' && <SuppliersPage />}
+          {activeTab === 'wallets' && <WalletsPage profile={profile} />}
+          {activeTab === 'pos' && <POSMachinesPage profile={profile} />}
+          {activeTab === 'fast_credit' && <FastCreditPage profile={profile} />}
+          {activeTab === 'suppliers' && <SuppliersPage profile={profile} />}
           {activeTab === 'reports' && <ReportsPage />}
           {activeTab === 'migration' && <MigrationViewerPage />}
           {activeTab === 'tester' && <SystemTesterPage onNavigate={(tab) => setActiveTab(tab as NavTab)} />}
