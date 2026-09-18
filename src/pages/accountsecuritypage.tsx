@@ -154,7 +154,10 @@ export const AccountSecurityPage: React.FC<AccountSecurityPageProps> = ({ profil
     setBusyAction('profile');
     setMessage('');
     setError('');
-    const { error: updateError } = await supabase.from('profiles').update({ full_name: fullName.trim(), phone: phone.trim() || null }).eq('id', profile.id);
+    const { error: updateError } = await supabase.rpc('update_own_profile', {
+      p_full_name: fullName.trim(),
+      p_phone: phone.trim() || null,
+    });
     if (updateError) setError(updateError.message || 'تعذر حفظ بيانات الحساب.');
     else {
       onProfileUpdated({ ...profile, full_name: fullName.trim(), phone: phone.trim() || null });
