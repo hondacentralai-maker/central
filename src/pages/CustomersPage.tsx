@@ -32,6 +32,7 @@ import type { Profile, Contract } from '../types';
 import { StatementModal } from '../components/StatementModal';
 import { PromissoryNoteModal } from '../components/PromissoryNoteModal';
 import { excelService } from '../services/excelService';
+import { api } from '../services/api';
 import { openWhatsAppReminder } from '../utils/whatsapp';
 
 // Helper for clean English numbers throughout the interface
@@ -56,6 +57,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   onDirectCollect,
   initialCustomerTarget 
 }) => {
+  const customerCacheKey = _profile?.id ? `central_customers_state:${_profile.id}` : null;
   const [customersData, setCustomersData] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
@@ -163,37 +165,37 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
   const loadCustomers = async () => {
     setIsLoading(true);
     try {
-      const saved = localStorage.getItem('central_customers_state');
+      const saved = customerCacheKey ? localStorage.getItem(customerCacheKey) : null;
       if (saved) {
         try {
-          const list = JSON.parse(saved);
-          if (list && list.length > 0) {
-            setCustomersData(list);
-            setIsLoading(false);
+          const cached = JSON.parse(saved);
+          if (Array.isArray(cached) && cached.length > 0) {
+            setCustomersData(cached);
             return;
           }
         } catch {}
       }
 
-      const res = await fetch('/migrated_data.json');
-      if (res.ok) {
-        const json = await res.json();
-        let list = (json.customers || []).map((c: any) => ({
-          ...c,
-          national_id: c.national_id || '',
-          credit_status: c.credit_status || 'active'
-        }));
+      const [customers, contracts, installments] = await Promise.all([
+        api.getCustomers('', _profile?.organization_id, 500),
+        api.getContracts(undefined, _profile?.organization_id),
+        api.getInstallments(),
+      ]);
 
-        const savedCustom = localStorage.getItem('central_custom_customers');
-        if (savedCustom) {
-          try {
-            const customList = JSON.parse(savedCustom);
-            list = [...customList, ...list];
-          } catch {}
-        }
-        setCustomersData(list);
-        localStorage.setItem('central_customers_state', JSON.stringify(list));
-      }
+      const list = customers.map((customer: any) => ({
+        ...customer,
+        national_id: customer.national_id || '',
+        credit_status: customer.status === 'blocked' ? 'defaulted' : 'active',
+        contracts: contracts
+          .filter((contract: any) => contract.customer_id === customer.id)
+          .map((contract: any) => ({
+            ...contract,
+            installment_price: contract.total_installment_price,
+            installments: installments.filter((installment: any) => installment.contract_id === contract.id),
+          })),
+      }));
+      setCustomersData(list);
+      if (customerCacheKey) localStorage.setItem(customerCacheKey, JSON.stringify(list));
     } catch {
       //
     } finally {
@@ -203,9 +205,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
 
   const persistCustomersState = (updatedList: any[]) => {
     setCustomersData(updatedList);
-    try {
-      localStorage.setItem('central_customers_state', JSON.stringify(updatedList));
-    } catch {}
+    if (customerCacheKey) localStorage.setItem(customerCacheKey, JSON.stringify(updatedList));
   };
 
   // Toggle Customer Credit Status
