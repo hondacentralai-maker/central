@@ -95,89 +95,17 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
 
     try {
       if (testId === 'daily_closing') {
-        // Test Daily Closing execution
-        const res = await api.recordDailyClosing({
-          treasuryId: '00000000-0000-0000-0000-000000000002',
-          closingDate: new Date().toISOString().slice(0, 10),
-          openingBalance: 10000,
-          totalCollections: 14500,
-          totalCashSales: 4200,
-          totalWalletNet: 1850,
-          totalExpenses: 450,
-          actualCash: 30100,
-          notes: 'فحص آلي لنظام التقفيل المحاسبي'
-        });
-
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم اعتماد التقفيل برقم [${res.closing_number}]، الفارق الدفتري: ${res.difference} ج.م (${res.status === 'balanced' ? 'متطابق' : res.status})`
-        } : t));
+        throw new Error('اختبار التقفيل يحتاج بيئة اختبار منفصلة حتى لا ينشئ قيدًا ماليًا في اليومية الحقيقية.');
       } else if (testId === 'partial_payment') {
-        // Test Partial Payment Logic
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: 'تم بنجاح: تم احتساب سداد جزئي 250 ج.م، وتعديل المتبقي من القسط، وتحديث رصيد العقد والنقدية بالدرج.'
-        } : t));
+        throw new Error('اختبار السداد الجزئي لم يُربط بعد بمسار اختبار آمن في قاعدة البيانات.');
       } else if (testId === 'postpone_installment') {
-        // Test Postponement
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم تأجيل استحقاق القسط إلى تاريخ [${nextMonth.toISOString().slice(0, 10)}] وحفظ سبب التأجيل وسجل المتابعة.`
-        } : t));
+        throw new Error('اختبار التأجيل لم يُربط بعد بمسار اختبار آمن في قاعدة البيانات.');
       } else if (testId === 'early_settlement') {
-        // Test Early Payoff
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: 'تم بنجاح: تم عمل مخالصة نهائية وتسوية 3,500 ج.م مع خصم تعجيل 200 ج.م، وتصفير رصيد العقد بالكامل.'
-        } : t));
+        throw new Error('اختبار السداد المبكر لم يُربط بعد بمسار اختبار آمن في قاعدة البيانات.');
       } else if (testId === 'create_customer') {
-        // Test Customer with National ID & Guarantor (NO customer code)
-        const testCustomer = {
-          name: 'عميل اختبار تجريبي',
-          phone: '01012345678',
-          national_id: '29801011234567',
-          address: 'الفرع الرئيسي',
-          guarantor: { name: 'ضامن معتمد', phone: '01099887766', relationship: 'أخ' },
-          contracts: []
-        };
-
-        const stored = localStorage.getItem('central_custom_customers');
-        const list = stored ? JSON.parse(stored) : [];
-        localStorage.setItem('central_custom_customers', JSON.stringify([testCustomer, ...list]));
-
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم تسجيل العميل بالاسم والرقم القومي والضامن وإتاحته للبحث الفوري.`
-        } : t));
+        throw new Error('اختبار إنشاء العميل لم يُنفذ حتى لا تُضاف بيانات تجريبية إلى حساب حقيقي.');
       } else if (testId === 'treasury_transfers') {
-        // Test Treasury deposit & transfer
-        const treasuries = await api.getTreasuries();
-        const drawer = treasuries.find(t => t.treasury_type === 'drawer') || treasuries[0];
-        
-        const timeMs = Math.round(performance.now() - start);
-        setTests(prev => prev.map(t => t.id === testId ? {
-          ...t,
-          status: 'passed',
-          executionTimeMs: timeMs,
-          resultMessage: `تم بنجاح: تم فحص رصيد درج الكاشير (${Number(drawer?.current_balance || 35420).toLocaleString('en-US')} ج.م) والتحقق من جاهزية التحويل لمحافظ الكاش وماكينات فوري.`
-        } : t));
+        throw new Error('اختبار التحويلات يحتاج بيئة اختبار منفصلة حتى لا ينقل أموالًا حقيقية.');
       } else if (testId === 'financial_reports') {
         // Test reports
         const m = await api.getDashboardMetrics();
@@ -210,7 +138,10 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
     }
 
     setIsRunningAll(false);
-    setOverallHealth('passed');
+    setTests(current => {
+      setOverallHealth(current.some(test => test.status === 'failed') ? 'failed' : 'passed');
+      return current;
+    });
   };
 
   const passedCount = tests.filter(t => t.status === 'passed').length;
@@ -276,7 +207,7 @@ export const SystemTesterPage: React.FC<SystemTesterPageProps> = ({ onNavigate }
           <div>
             <span className="text-xs text-slate-500 font-bold block">كفاءة تشغيل النظام</span>
             <span className="text-xl font-black text-slate-900">
-              {overallHealth === 'passed' ? '100% جاهز للعمل' : 'جاهز للاختبار'}
+              {overallHealth === 'passed' ? '100% جاهز للعمل' : overallHealth === 'failed' ? 'الاختبارات غير مكتملة' : 'جاهز للاختبار'}
             </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
