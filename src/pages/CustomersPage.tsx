@@ -962,7 +962,7 @@ export const CustomersPage: React.FC<CustomersPageProps> = ({
                                   <button
                                     onClick={() => setInstallmentNoteModal({
                                       contractIndex: ctrIdx,
-                                      instIndex,
+                                      instIndex: instIdx,
                                       text: inst.notes || '',
                                     })}
                                     title="إضافة أو تعديل ملاحظة القسط"
