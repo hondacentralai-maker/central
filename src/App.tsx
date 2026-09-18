@@ -101,8 +101,15 @@ export default function App() {
     const trialExpired = Boolean(
       nextProfile?.trial_ends_at && new Date(nextProfile.trial_ends_at).getTime() <= Date.now()
     );
+    let hasSubscriptionAccess = false;
+    if (trialExpired) {
+      const { data: subscriptionStatus } = await supabase.rpc('get_subscription_status');
+      hasSubscriptionAccess = Boolean(
+        subscriptionStatus?.effective_until && new Date(subscriptionStatus.effective_until).getTime() > Date.now()
+      );
+    }
 
-    if (error || !nextProfile || !nextProfile.is_active || trialExpired || !nextProfile.organization_id) {
+    if (error || !nextProfile || !nextProfile.is_active || (trialExpired && !hasSubscriptionAccess) || !nextProfile.organization_id) {
       const trialDate = nextProfile?.trial_ends_at
         ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(nextProfile.trial_ends_at))
         : '';
