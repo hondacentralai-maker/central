@@ -25,6 +25,7 @@ export interface Profile {
   phone?: string | null;
   role: 'admin' | 'manager' | 'cashier' | 'collector' | 'sales' | 'reports' | string;
   is_active: boolean;
+  trial_ends_at?: string | null;
   branch?: { name: string; code?: string | null } | null;
 }
 
