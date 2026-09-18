@@ -178,7 +178,7 @@ export const TreasuryPage: React.FC<{ profile: Profile }> = ({ profile }) => {
                 إجراءات
               </button>
               {isActionsOpen && (
-                <div className="absolute left-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl" role="menu">
+                <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl" role="menu">
                   <button type="button" role="menuitem" onClick={() => openMovementModal('in')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-xs font-bold text-emerald-700 transition hover:bg-emerald-50">
                     <Plus className="h-4 w-4" /> إيداع نقدي
                   </button>
