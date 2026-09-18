@@ -14,6 +14,7 @@ import {
   Sparkles,
   X
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export type NavTab = 
   | 'dashboard' 
@@ -44,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   role,
 }) => {
-  const navItems = [
+  const navItems: Array<{ id: NavTab; label: string; icon: LucideIcon; badge?: string; count?: string }> = [
     { id: 'dashboard' as NavTab, label: 'لوحة التحكم', icon: LayoutDashboard },
     { id: 'installments' as NavTab, label: 'الأقساط والتحصيل', icon: CreditCard, badge: 'رئيسي' },
     { id: 'customers' as NavTab, label: 'العملاء والعقود', icon: Users },
