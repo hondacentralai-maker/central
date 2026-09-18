@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Smartphone, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, UserPlus, ArrowRight } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 
-const DEFAULT_ORGANIZATION_ID = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID || '00000000-0000-0000-0000-000000000001';
-
 interface LoginPageProps {
   onLoginSuccess: (user: { email: string; name: string; role: string }) => void;
 }
@@ -47,7 +45,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           password,
           options: {
             data: {
-              organization_id: DEFAULT_ORGANIZATION_ID,
               full_name: fullName.trim(),
               phone: phone.trim(),
               role: 'cashier',
