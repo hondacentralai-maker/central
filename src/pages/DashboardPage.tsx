@@ -47,16 +47,15 @@ interface InstallmentAlertItem {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ 
   onQuickCollect, 
-  onNavigate,
-  onDirectCollect 
+  onNavigate
 }) => {
   const [stats, setStats] = useState<any>({
-    totalCustomers: 144,
-    totalContractsValue: 1994800,
-    totalRemainingDebt: 694775,
-    totalCashInTreasury: 35420,
-    overdueInstallments: 18,
-    activeContractsCount: 165
+    totalCustomers: 0,
+    totalContractsValue: 0,
+    totalRemainingDebt: 0,
+    totalCashInTreasury: 0,
+    overdueInstallments: 0,
+    activeContractsCount: 0
   });
 
   const [activeAlertTab, setActiveAlertTab] = useState<'overdue' | 'today' | 'upcoming' | 'paid'>('overdue');
@@ -70,109 +69,47 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     // 1. Fetch metrics
     api.getDashboardMetrics().then((data) => {
-      if (mounted && data) {
-        setStats((prev: any) => ({
-          ...prev,
-          ...data,
-          totalCustomers: data.totalCustomers || prev.totalCustomers,
-          totalContractsValue: data.totalContractsValue || prev.totalContractsValue,
-          totalRemainingDebt: data.totalRemainingDebt || prev.totalRemainingDebt,
-          totalCashInTreasury: data.totalCashInTreasury || prev.totalCashInTreasury,
-        }));
-      }
+      if (mounted && data) setStats(data);
+    }).catch(() => {
+      if (mounted) setStats({ totalCustomers: 0, totalContractsValue: 0, totalRemainingDebt: 0, totalCashInTreasury: 0, overdueInstallments: 0, activeContractsCount: 0 });
     });
 
-    // 2. Fetch customers to populate interactive Due / Overdue center
-    fetch('/migrated_data.json')
-      .then(res => res.json())
-      .then(json => {
+    // Read alerts from the same Supabase records used by the financial screens.
+    Promise.all([api.getCustomers('', undefined, 500), api.getContracts(), api.getInstallments()])
+      .then(([customers, contracts, installments]) => {
         if (!mounted) return;
-
-        let customers = json.customers || [];
-        const savedCustom = localStorage.getItem('central_custom_customers');
-        if (savedCustom) {
-          try {
-            const customList = JSON.parse(savedCustom);
-            customers = [...customList, ...customers];
-          } catch {}
-        }
-
-        const alerts: InstallmentAlertItem[] = [];
+        const customerById = new Map(customers.map(customer => [customer.id, customer]));
+        const contractById = new Map(contracts.map(contract => [contract.id, contract]));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        customers.forEach((c: any, cIdx: number) => {
-          const custCode = c.code || `CUS-${(cIdx + 1).toString().padStart(5, '0')}`;
-          (c.contracts || []).forEach((ctr: any, ctrIdx: number) => {
-            (ctr.installments || []).forEach((inst: any, instIdx: number) => {
-              if (inst.item_type === 'down_payment') return;
-
-              const isPaid = inst.status === 'paid' || (inst.paid_amount >= inst.due_amount && inst.due_amount > 0);
-              const remaining = inst.remaining_amount !== undefined ? inst.remaining_amount : (inst.due_amount - (inst.paid_amount || 0));
-
-              // Parse installment date
-              let dDate: Date;
-              if (inst.due_date && inst.due_date.includes('/')) {
-                const parts = inst.due_date.split('/');
-                if (parts.length === 2) {
-                  dDate = new Date(2026, parseInt(parts[1]) - 1, parseInt(parts[0]));
-                } else {
-                  dDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                }
-              } else if (inst.due_date && inst.due_date.includes('-')) {
-                dDate = new Date(inst.due_date);
-              } else {
-                // Synthesize realistic dates for demo/sample rows
-                dDate = new Date(2026, 8, 10 + (instIdx % 15));
-              }
-
-              if (isNaN(dDate.getTime())) {
-                dDate = new Date(2026, 8, 15);
-              }
-
-              const diffTime = dDate.getTime() - today.getTime();
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-              let status: 'overdue' | 'today' | 'upcoming' | 'paid' = 'upcoming';
-              let delayDays = 0;
-
-              if (isPaid) {
-                status = 'paid';
-              } else if (diffDays < 0) {
-                status = 'overdue';
-                delayDays = Math.abs(diffDays);
-              } else if (diffDays === 0) {
-                status = 'today';
-              } else if (diffDays <= 7) {
-                status = 'upcoming';
-              } else {
-                status = 'upcoming';
-              }
-
-              alerts.push({
-                id: `alert-${cIdx}-${ctrIdx}-${instIdx}`,
-                customerName: c.name,
-                customerPhone: c.phone || '01000000000',
-                customerCode: custCode,
-                deviceName: ctr.device_name || 'جهاز تقسيط',
-                installmentNo: `قسط شهر ${instIdx + 1}`,
-                dueAmount: remaining > 0 ? remaining : inst.due_amount,
-                dueDate: inst.due_date || dDate.toLocaleDateString('ar-EG'),
-                status,
-                delayDays,
-                contractIndex: ctrIdx,
-                installmentIndex: instIdx
-              });
-            });
+        const alerts: InstallmentAlertItem[] = installments
+          .filter(installment => Boolean(installment.due_date))
+          .map(installment => {
+            const contract = contractById.get(installment.contract_id);
+            const customer = customerById.get(installment.customer_id) || (contract ? customerById.get(contract.customer_id) : undefined);
+            const dueDate = new Date(installment.due_date);
+            const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            const isPaid = installment.status === 'paid' || Number(installment.remaining_amount) <= 0;
+            const status: InstallmentAlertItem['status'] = isPaid ? 'paid' : diffDays < 0 ? 'overdue' : diffDays === 0 ? 'today' : 'upcoming';
+            return {
+              id: installment.id,
+              customerName: customer?.name || contract?.customer_name || 'عميل غير معروف',
+              customerPhone: customer?.phone || contract?.customer_phone || '',
+              customerCode: customer?.code || '',
+              deviceName: contract?.device_name || 'جهاز تقسيط',
+              installmentNo: `قسط ${installment.installment_number}`,
+              dueAmount: Number(installment.remaining_amount || installment.due_amount || 0),
+              dueDate: installment.due_date,
+              status,
+              delayDays: status === 'overdue' ? Math.abs(diffDays) : 0,
+              contractIndex: 0,
+              installmentIndex: installment.installment_number,
+            };
           });
-        });
-
         setAllAlerts(alerts);
-        setIsLoadingAlerts(false);
       })
-      .catch(() => {
-        setIsLoadingAlerts(false);
-      });
+      .catch(() => setAllAlerts([]))
+      .finally(() => { if (mounted) setIsLoadingAlerts(false); });
 
     return () => {
       mounted = false;
@@ -204,35 +141,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const upcomingCount = useMemo(() => allAlerts.filter(a => a.status === 'upcoming').length, [allAlerts]);
   const upcomingTotal = useMemo(() => allAlerts.filter(a => a.status === 'upcoming').reduce((s, a) => s + a.dueAmount, 0), [allAlerts]);
   const paidCount = useMemo(() => allAlerts.filter(a => a.status === 'paid').length, [allAlerts]);
-
-  // Handle direct payment from Dashboard
-  const handleDirectDashboardPay = (item: InstallmentAlertItem) => {
-    // Mark as paid in local alerts state
-    setAllAlerts(prev => prev.map(a => a.id === item.id ? { ...a, status: 'paid' } : a));
-
-    // Update treasury stats
-    setStats((prev: any) => ({
-      ...prev,
-      totalCashInTreasury: (prev.totalCashInTreasury || 0) + item.dueAmount,
-      totalRemainingDebt: Math.max((prev.totalRemainingDebt || 0) - item.dueAmount, 0)
-    }));
-
-    if (onDirectCollect) {
-      onDirectCollect({
-        receiptNumber: 'REC-' + Math.floor(1000 + Math.random() * 9000),
-        customerName: item.customerName,
-        customerPhone: item.customerPhone,
-        contractNumber: item.installmentNo,
-        deviceName: item.deviceName,
-        amount: item.dueAmount,
-        remainingBalance: 0,
-        paymentMethod: 'كاش الدرج',
-        date: new Date().toLocaleDateString('ar-EG')
-      });
-    } else {
-      alert(`✅ تم تحصيل ${item.dueAmount.toLocaleString('en-US')} ج.م بنجاح من الأستاذ ${item.customerName} وتوريدها للدرج.`);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -556,8 +464,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     {/* 2. Quick Pay Button */}
                     {item.status !== 'paid' && (
                       <button
-                        onClick={() => handleDirectDashboardPay(item)}
-                        title="سداد القسط فوراً وتوريده للدرج"
+                        onClick={onQuickCollect}
+                        title="فتح شاشة التحصيل لتسجيل السداد"
                         className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-sm active:scale-95 flex items-center gap-1 text-xs"
                       >
                         <Zap className="w-3.5 h-3.5 fill-current" />
@@ -600,9 +508,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {[
           { label: 'الأقساط والمتابعة', icon: CreditCard, tab: 'installments', color: 'text-blue-600 bg-blue-50' },
           { label: 'سجل العملاء', icon: Users, tab: 'customers', color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'خطوط الكاش (6)', icon: Smartphone, tab: 'wallets', color: 'text-purple-600 bg-purple-50' },
+          { label: 'خطوط الكاش', icon: Smartphone, tab: 'wallets', color: 'text-purple-600 bg-purple-50' },
           { label: 'ماكينات فوري وأمان', icon: TrendingUp, tab: 'pos', color: 'text-amber-600 bg-amber-50' },
-          { label: 'أجل سريع (75 محل)', icon: Users, tab: 'fast_credit', color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'أجل سريع', icon: Users, tab: 'fast_credit', color: 'text-emerald-600 bg-emerald-50' },
           { label: 'التقفيل اليومي', icon: Wallet, tab: 'closing', color: 'text-rose-600 bg-rose-50' },
         ].map((item, idx) => {
           const Icon = item.icon;
@@ -621,26 +529,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         })}
       </div>
 
-      {/* Migration Notice Banner */}
-      <div className="p-5 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-center sm:text-right">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm">تم استخراج وتجهيز بيانات دفاتر الإكسل السابقة بالكامل</h4>
-            <p className="text-xs text-slate-400">
-              144 عميل • 177 عقد قسط حقيقي بقيمة 1,994,800 ج.م • 75 حساب أجل سريع • 6 موردين
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => onNavigate('migration')}
-          className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition"
-        >
-          معاينة البيانات المستخرجة
-        </button>
-      </div>
     </div>
   );
 };
