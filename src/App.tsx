@@ -40,6 +40,8 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  // Expired accounts remain visible but cannot mutate data; RLS enforces the same rule server-side.
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -68,6 +70,7 @@ export default function App() {
     lastUserId.current = nextUserId;
     setSession(nextSession);
     setProfile(null);
+    setIsReadOnly(false);
     setProfileError('');
 
     if (!nextSession) {
@@ -109,7 +112,7 @@ export default function App() {
       );
     }
 
-    if (error || !nextProfile || !nextProfile.is_active || (trialExpired && !hasSubscriptionAccess) || !nextProfile.organization_id) {
+    if (error || !nextProfile || !nextProfile.is_active || !nextProfile.organization_id) {
       const trialDate = nextProfile?.trial_ends_at
         ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(nextProfile.trial_ends_at))
         : '';
@@ -127,6 +130,7 @@ export default function App() {
     }
 
     setProfile(nextProfile);
+    setIsReadOnly(trialExpired && !hasSubscriptionAccess);
     setActiveTab(getFirstAllowedTab(nextProfile.role));
     setAuthStatus('ready');
   }, []);
@@ -146,6 +150,7 @@ export default function App() {
     clearClientCache();
     setSession(null);
     setProfile(null);
+    setIsReadOnly(false);
     setAuthStatus('signed-out');
   };
 
@@ -188,6 +193,15 @@ export default function App() {
         />
 
         <main className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-8 lg:p-8">
+          {isReadOnly && (
+            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+              <span className="mt-0.5 text-lg" aria-hidden="true">!</span>
+              <div>
+                <p className="font-black">الحساب في وضع القراءة فقط</p>
+                <p className="mt-1 leading-6">يمكنك مشاهدة بياناتك وتقاريرك، لكن الإضافة والتعديل والحذف والتحصيل والتقفيل متوقفة حتى تفعيل كود اشتراك.</p>
+              </div>
+            </div>
+          )}
           {activeTab === 'dashboard' && (
             <DashboardPage 
               onQuickCollect={() => handleOpenCollection()} 
