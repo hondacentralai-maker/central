@@ -28,7 +28,9 @@ export const ReportsPage: React.FC = () => {
 
   const [walletsTotal, setWalletsTotal] = useState(0);
   const [posTotal, setPosTotal] = useState(0);
+  const [posCount, setPosCount] = useState(0);
   const [fastCreditTotal, setFastCreditTotal] = useState(0);
+  const [fastCreditCount, setFastCreditCount] = useState(0);
   const [period, setPeriod] = useState<'all' | 'today' | 'month'>('all');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,7 +63,9 @@ export const ReportsPage: React.FC = () => {
       });
       setWalletsTotal(wSum);
       setPosTotal(pSum);
+      setPosCount(pList.filter(p => p.is_active !== false).length);
       setFastCreditTotal(fSum);
+      setFastCreditCount(fList.length);
     } catch (err: any) {
       setMetrics(current => ({ ...current, error: err?.message || 'تعذر تحميل التقرير.' }));
     } finally {
@@ -84,8 +88,8 @@ export const ReportsPage: React.FC = () => {
       ["متبقي ديون الأقساط على العملاء", metrics.totalRemainingDebt, "واجب التحصيل"],
       ["نقدية الدرج والخزينة", metrics.totalCashInTreasury, "النقدية الفعلية"],
       ["أرصدة خطوط فودافون كاش", walletsTotal, "الأرصدة المسجلة في قاعدة البيانات"],
-      ["أرصدة ماكينات فوري وأمان", posTotal, "4 ماكينات دفع إلكتروني"],
-      ["أرصدة عملاء الأجل السريع", fastCreditTotal, "75 حساب ومحل شريك"],
+      ["أرصدة ماكينات فوري وأمان", posTotal, `${posCount} ماكينة دفع إلكتروني`],
+      ["أرصدة عملاء الأجل السريع", fastCreditTotal, `${fastCreditCount} حساب ومحل شريك`],
       ["إجمالي السيولة النقدية والرقمية", totalLiquidAssets, "الدرج + المحافظ + الماكينات"],
     ];
 
@@ -243,7 +247,7 @@ export const ReportsPage: React.FC = () => {
                 <td className="p-3.5 font-black text-slate-900 text-sm font-mono">
                   {posTotal.toLocaleString('en-US')} ج.م
                 </td>
-                <td className="p-3.5"><span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-bold">4 ماكينات نشطة</span></td>
+                <td className="p-3.5"><span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-bold">{posCount} ماكينة نشطة</span></td>
               </tr>
 
               <tr className="hover:bg-slate-50 transition">
