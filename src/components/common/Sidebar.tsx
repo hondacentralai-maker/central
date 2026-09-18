@@ -50,12 +50,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'customers' as NavTab, label: 'العملاء والعقود', icon: Users },
     { id: 'treasury' as NavTab, label: 'الخزينة والدرج', icon: Receipt },
     { id: 'closing' as NavTab, label: 'التقفيل اليومي', icon: FileText },
-    { id: 'wallets' as NavTab, label: 'خطوط ومحافظ الكاش', icon: Wallet, count: '6 خطوط' },
+    { id: 'wallets' as NavTab, label: 'خطوط ومحافظ الكاش', icon: Wallet },
     { id: 'pos' as NavTab, label: 'ماكينات فوري وأمان', icon: Layers },
-    { id: 'fast_credit' as NavTab, label: 'عملاء الأجل السريع', icon: Store, count: '75 محل' },
+    { id: 'fast_credit' as NavTab, label: 'عملاء الأجل السريع', icon: Store },
     { id: 'suppliers' as NavTab, label: 'الموردين والمشتريات', icon: Truck },
     { id: 'reports' as NavTab, label: 'التقارير المالية', icon: BarChart3 },
-    { id: 'migration' as NavTab, label: 'بيانات الإكسل المرحّلة', icon: Database, badge: '177 عقد' },
+    { id: 'migration' as NavTab, label: 'بيانات الإكسل المرحّلة', icon: Database, badge: 'معاينة' },
     { id: 'tester' as NavTab, label: 'فحص واختبار النظام', icon: Sparkles, badge: 'تيستر شامل' },
   ];
 
