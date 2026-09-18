@@ -56,14 +56,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           return;
         }
 
-        if (data.session) await supabase.auth.signOut();
+        if (data.session && data.user) {
+          setPassword('');
+          setConfirmPassword('');
+          onLoginSuccess({
+            email: data.user.email || identifier.trim(),
+            name: data.user.user_metadata?.full_name || fullName.trim(),
+            role: data.user.user_metadata?.role || 'admin',
+          });
+          return;
+        }
+
         setPassword('');
         setConfirmPassword('');
         setMode('login');
         setNotice(
-          data.session
-            ? 'تم إنشاء الحساب وتفعيله تلقائيًا. لديك فترة سماح مجانية لمدة شهر.'
-            : 'تم إنشاء الحساب. افتح رسالة تأكيد البريد الإلكتروني، ثم سجّل الدخول. لديك فترة سماح مجانية لمدة شهر.'
+          'تم إنشاء الحساب. افتح رسالة تأكيد البريد الإلكتروني، ثم سجّل الدخول. لديك فترة سماح مجانية لمدة شهر.'
         );
         return;
       }
