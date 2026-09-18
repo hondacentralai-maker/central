@@ -18,8 +18,6 @@ import { POSMachinesPage } from './pages/POSMachinesPage';
 import { FastCreditPage } from './pages/FastCreditPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
-import { MigrationViewerPage } from './pages/MigrationViewerPage';
-import { SystemTesterPage } from './pages/SystemTesterPage';
 import { supabase } from './utils/supabase';
 import type { Contract, Profile } from './types';
 
@@ -178,8 +176,6 @@ export default function App() {
           {activeTab === 'fast_credit' && <FastCreditPage profile={profile} />}
           {activeTab === 'suppliers' && <SuppliersPage profile={profile} />}
           {activeTab === 'reports' && <ReportsPage />}
-          {activeTab === 'migration' && <MigrationViewerPage />}
-          {activeTab === 'tester' && <SystemTesterPage onNavigate={(tab) => setActiveTab(tab as NavTab)} />}
         </main>
       </div>
 
