@@ -118,10 +118,10 @@ BEGIN
         WHERE id = p_source_id;
 
         INSERT INTO public.pos_transactions (
-            organization_id, pos_machine_id, transaction_type, amount, balance_after,
+            organization_id, pos_machine_id, transaction_type, amount, commission, net_amount,
             notes, created_by
         ) VALUES (
-            v_org_id, p_source_id, 'settlement', p_amount, v_source_bal - p_amount,
+            v_org_id, p_source_id, 'settlement', p_amount, 0, p_amount,
             COALESCE(p_notes, 'سحب وتوريد من الماكينة للدرج [' || v_transfer_code || ']'), v_user_id
         );
     ELSE
@@ -188,10 +188,10 @@ BEGIN
         WHERE id = p_target_id;
 
         INSERT INTO public.pos_transactions (
-            organization_id, pos_machine_id, transaction_type, amount, balance_after,
+            organization_id, pos_machine_id, transaction_type, amount, commission, net_amount,
             notes, created_by
         ) VALUES (
-            v_org_id, p_target_id, 'recharge', p_amount, v_target_bal + p_amount,
+            v_org_id, p_target_id, 'recharge', p_amount, 0, p_amount,
             COALESCE(p_notes, 'تغذية شحن ماكينة [' || v_transfer_code || ']'), v_user_id
         );
     ELSE
@@ -200,9 +200,9 @@ BEGIN
 
     -- 3. Audit Log
     INSERT INTO public.audit_logs (
-        organization_id, user_id, action, entity_type, entity_id, new_data
+        organization_id, user_id, action, module, record_id, new_values
     ) VALUES (
-        v_org_id, v_user_id, 'TRANSFER', 'funds_transfer', gen_random_uuid(),
+        v_org_id, v_user_id, 'transfer', 'funds_transfer', v_transfer_code,
         jsonb_build_object(
             'code', v_transfer_code,
             'source_type', p_source_type,
@@ -301,7 +301,11 @@ BEGIN
     SET opening_balance = EXCLUDED.opening_balance,
         total_collections = EXCLUDED.total_collections,
         total_cash_sales = EXCLUDED.total_cash_sales,
+        total_cash_in = EXCLUDED.total_cash_in,
+        total_cash_out = EXCLUDED.total_cash_out,
         total_expenses = EXCLUDED.total_expenses,
+        total_wallet_in = EXCLUDED.total_wallet_in,
+        total_wallet_out = EXCLUDED.total_wallet_out,
         expected_balance = EXCLUDED.expected_balance,
         actual_cash = EXCLUDED.actual_cash,
         difference = EXCLUDED.difference,
@@ -314,9 +318,9 @@ BEGIN
 
     -- Audit Log
     INSERT INTO public.audit_logs (
-        organization_id, user_id, action, entity_type, entity_id, new_data
+        organization_id, user_id, action, module, record_id, new_values
     ) VALUES (
-        v_org_id, v_user_id, 'DAILY_CLOSING', 'daily_closings', v_closing_id,
+        v_org_id, v_user_id, 'daily_closing', 'daily_closings', v_closing_id::text,
         jsonb_build_object(
             'closing_number', v_closing_number,
             'closing_date', p_closing_date,
@@ -394,14 +398,14 @@ BEGIN
         WHERE collection_id = p_collection_id
     LOOP
         UPDATE public.installments
-        SET paid_amount = GREATEST(paid_amount - v_ci.allocated_amount, 0),
-            remaining_amount = remaining_amount + v_ci.allocated_amount,
+        SET paid_amount = GREATEST(paid_amount - v_ci.amount_applied, 0),
+            remaining_amount = remaining_amount + v_ci.amount_applied,
             status = CASE
-                WHEN paid_amount - v_ci.allocated_amount <= 0 THEN 'pending'
+                WHEN paid_amount - v_ci.amount_applied <= 0 THEN 'pending'
                 ELSE 'partially_paid'
             END,
             paid_date = CASE
-                WHEN paid_amount - v_ci.allocated_amount <= 0 THEN NULL
+                WHEN paid_amount - v_ci.amount_applied <= 0 THEN NULL
                 ELSE paid_date
             END
         WHERE id = v_ci.installment_id;
@@ -441,9 +445,9 @@ BEGIN
 
     -- 6. Log in Audit Trail
     INSERT INTO public.audit_logs (
-        organization_id, user_id, action, entity_type, entity_id, old_data, new_data
+        organization_id, user_id, action, module, record_id, old_values, new_values
     ) VALUES (
-        v_org_id, v_user_id, 'REVERSE_COLLECTION', 'collections', p_collection_id,
+        v_org_id, v_user_id, 'reverse_collection', 'collections', p_collection_id::text,
         to_jsonb(v_col),
         jsonb_build_object(
             'receipt_number', v_col.receipt_number,
