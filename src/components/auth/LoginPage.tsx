@@ -1,25 +1,74 @@
 import React, { useState } from 'react';
-import { Smartphone, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Smartphone, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, UserPlus, ArrowRight } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
+
+const DEFAULT_ORGANIZATION_ID = import.meta.env.VITE_DEFAULT_ORGANIZATION_ID || '00000000-0000-0000-0000-000000000001';
 
 interface LoginPageProps {
   onLoginSuccess: (user: { email: string; name: string; role: string }) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setNotice('');
 
     try {
+      if (mode === 'signup') {
+        if (!fullName.trim()) {
+          setError('اكتب الاسم الكامل أولًا.');
+          return;
+        }
+        if (password.length < 8) {
+          setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError('تأكيد كلمة المرور غير مطابق.');
+          return;
+        }
+
+        const { data, error: signupError } = await supabase.auth.signUp({
+          email: identifier.trim(),
+          password,
+          options: {
+            data: {
+              organization_id: DEFAULT_ORGANIZATION_ID,
+              full_name: fullName.trim(),
+              phone: phone.trim(),
+              role: 'cashier',
+              is_active: false,
+            },
+          },
+        });
+
+        if (signupError) {
+          setError(signupError.message || 'تعذر إنشاء الحساب.');
+          return;
+        }
+
+        if (data.session) await supabase.auth.signOut();
+        setPassword('');
+        setConfirmPassword('');
+        setMode('login');
+        setNotice('تم إرسال طلب الحساب. يحتاج المدير إلى تفعيله قبل استخدام النظام.');
+        return;
+      }
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: identifier,
         password: password,
@@ -66,7 +115,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
+        {notice && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-800">
+            {notice}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">الاسم الكامل</label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="الاسم الثلاثي أو الرباعي"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">رقم الهاتف (اختياري)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="01xxxxxxxxx"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                />
+              </div>
+            </>
+          )}
+
           {/* Email / Username */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">البريد الإلكتروني</label>
@@ -93,7 +175,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={mode === 'signup' ? '8 أحرف على الأقل' : '••••••••'}
                 className="w-full pr-10 pl-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
               />
               <button
@@ -106,28 +188,58 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Remember Session */}
-          <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-2 cursor-pointer text-slate-600 font-semibold select-none">
+          {mode === 'signup' && (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">تأكيد كلمة المرور</label>
               <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="أعد كتابة كلمة المرور"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               />
-              <span>تذكر تسجيل الدخول على هذا الجهاز</span>
-            </label>
-             <span className="text-slate-400 text-[11px]">تسجيل آمن عبر Supabase</span>
-          </div>
+            </div>
+          )}
+
+          {/* Remember Session */}
+          {mode === 'login' && (
+            <div className="flex items-center justify-between text-xs">
+              <label className="flex cursor-pointer select-none items-center gap-2 font-semibold text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                />
+                <span>تذكر تسجيل الدخول على هذا الجهاز</span>
+              </label>
+              <span className="text-[11px] text-slate-400">تسجيل آمن عبر Supabase</span>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isLoading}
             className="w-full py-3 rounded-xl bg-primary hover:bg-primary-dark active:scale-95 text-white font-black text-sm shadow-lg shadow-primary/25 transition flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {isLoading ? 'جاري التحقق...' : 'تسجيل الدخول للنظام'}
+            {isLoading ? 'جاري التنفيذ...' : mode === 'login' ? 'تسجيل الدخول للنظام' : 'إنشاء حساب جديد'}
           </button>
         </form>
+
+        <div className="border-t border-slate-100 pt-2 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === 'login' ? 'signup' : 'login');
+              setError('');
+              setNotice('');
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark"
+          >
+            {mode === 'login' ? <><UserPlus className="h-4 w-4" /> إنشاء حساب جديد</> : <><ArrowRight className="h-4 w-4" /> العودة لتسجيل الدخول</>}
+          </button>
+        </div>
 
         <div className="pt-2 border-t border-slate-100 text-center">
           <p className="text-[11px] text-slate-400">
