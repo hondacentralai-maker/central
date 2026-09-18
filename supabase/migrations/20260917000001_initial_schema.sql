@@ -1,3 +1,3 @@
--- Initial schema for Supabase Migration
--- (Mirror of schema.sql)
-\i ../../schema.sql
+-- Initial schema for Supabase Migration.
+-- Apply schema.sql from the Supabase SQL editor before running later migrations.
+-- The previous `\i` psql command is not supported by the Supabase migration runner.
