@@ -18,6 +18,7 @@ import { POSMachinesPage } from './pages/POSMachinesPage';
 import { FastCreditPage } from './pages/FastCreditPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { SubscriptionPage } from './pages/SubscriptionPage';
 import { supabase } from './utils/supabase';
 import type { Contract, Profile } from './types';
 
@@ -203,6 +204,7 @@ export default function App() {
           {activeTab === 'fast_credit' && <FastCreditPage profile={profile} />}
           {activeTab === 'suppliers' && <SuppliersPage profile={profile} />}
           {activeTab === 'reports' && <ReportsPage />}
+          {activeTab === 'subscription' && <SubscriptionPage profile={profile} />}
         </main>
       </div>
 
