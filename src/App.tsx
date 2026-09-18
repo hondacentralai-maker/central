@@ -77,7 +77,7 @@ export default function App() {
     setAuthStatus('checking');
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, organization_id, branch_id, full_name, phone, role, is_active, branch:branches(name, code)')
+      .select('id, organization_id, branch_id, full_name, phone, role, is_active, trial_ends_at, branch:branches(name, code)')
       .eq('id', nextSession.user.id)
       .maybeSingle();
 
@@ -92,12 +92,28 @@ export default function App() {
         phone: raw.phone,
         role: raw.role,
         is_active: raw.is_active,
+        trial_ends_at: raw.trial_ends_at,
         branch: Array.isArray(raw.branch) ? raw.branch[0] ?? null : raw.branch ?? null,
       };
     }
 
-    if (error || !nextProfile || !nextProfile.is_active || !nextProfile.organization_id) {
-      setProfileError(error ? 'تعذر التحقق من صلاحية الملف الوظيفي.' : 'لا يوجد ملف مستخدم فعّال أو منشأة مرتبطة بالحساب.');
+    const trialExpired = Boolean(
+      nextProfile?.trial_ends_at && new Date(nextProfile.trial_ends_at).getTime() <= Date.now()
+    );
+
+    if (error || !nextProfile || !nextProfile.is_active || trialExpired || !nextProfile.organization_id) {
+      const trialDate = nextProfile?.trial_ends_at
+        ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(nextProfile.trial_ends_at))
+        : '';
+      setProfileError(
+        error
+          ? 'تعذر التحقق من صلاحية الملف الوظيفي.'
+          : trialExpired
+            ? `انتهت فترة السماح المجانية في ${trialDate}. تواصل معنا لتجديد الحساب.`
+            : !nextProfile?.is_active
+              ? 'هذا الحساب غير مفعّل.'
+              : 'لا توجد منشأة مرتبطة بهذا الحساب.'
+      );
       setAuthStatus('profile-error');
       return;
     }
