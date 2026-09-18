@@ -18,17 +18,17 @@ import { api } from '../services/api';
 
 export const ReportsPage: React.FC = () => {
   const [metrics, setMetrics] = useState<any>({
-    totalCustomers: 144,
-    totalContractsValue: 1994800,
-    totalRemainingDebt: 694775,
-    totalCashInTreasury: 35420,
-    overdueInstallments: 18,
-    activeContractsCount: 165
+    totalCustomers: 0,
+    totalContractsValue: 0,
+    totalRemainingDebt: 0,
+    totalCashInTreasury: 0,
+    overdueInstallments: 0,
+    activeContractsCount: 0
   });
 
-  const [walletsTotal, setWalletsTotal] = useState(121640);
-  const [posTotal, setPosTotal] = useState(25091);
-  const [fastCreditTotal, setFastCreditTotal] = useState(148500);
+  const [walletsTotal, setWalletsTotal] = useState(0);
+  const [posTotal, setPosTotal] = useState(0);
+  const [fastCreditTotal, setFastCreditTotal] = useState(0);
   const [period, setPeriod] = useState<'all' | 'today' | 'month'>('all');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,11 +49,11 @@ export const ReportsPage: React.FC = () => {
 
       const drawer = tList.find(t => t.treasury_type === 'drawer') || tList[0];
       const custody = tList.find(t => t.treasury_type === 'custody');
-      const totalCash = (Number(drawer?.current_balance || 0) + Number(custody?.current_balance || 0)) || 50420;
+      const totalCash = Number(drawer?.current_balance || 0) + Number(custody?.current_balance || 0);
 
-      const wSum = wList.reduce((acc, w) => acc + Number(w.current_balance || 0), 0) || 121640;
-      const pSum = pList.reduce((acc, p) => acc + Number(p.current_balance || 0), 0) || 25091;
-      const fSum = fList.reduce((acc, f) => acc + Number(f.current_balance || 0), 0) || 148500;
+      const wSum = wList.reduce((acc, w) => acc + Number(w.current_balance || 0), 0);
+      const pSum = pList.reduce((acc, p) => acc + Number(p.current_balance || 0), 0);
+      const fSum = fList.reduce((acc, f) => acc + Number(f.current_balance || 0), 0);
 
       setMetrics({
         ...m,
@@ -62,8 +62,8 @@ export const ReportsPage: React.FC = () => {
       setWalletsTotal(wSum);
       setPosTotal(pSum);
       setFastCreditTotal(fSum);
-    } catch {
-      // keep fallback
+    } catch (err: any) {
+      setMetrics(current => ({ ...current, error: err?.message || 'تعذر تحميل التقرير.' }));
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export const ReportsPage: React.FC = () => {
       ["المسدد فعلياً من الأقساط", totalPaid, `نسبة التحصيل ${paymentRate}%`],
       ["متبقي ديون الأقساط على العملاء", metrics.totalRemainingDebt, "واجب التحصيل"],
       ["نقدية الدرج والخزينة", metrics.totalCashInTreasury, "النقدية الفعلية"],
-      ["أرصدة خطوط فودافون كاش", walletsTotal, "6 خطوط كاش نشطة"],
+      ["أرصدة خطوط فودافون كاش", walletsTotal, "الأرصدة المسجلة في قاعدة البيانات"],
       ["أرصدة ماكينات فوري وأمان", posTotal, "4 ماكينات دفع إلكتروني"],
       ["أرصدة عملاء الأجل السريع", fastCreditTotal, "75 حساب ومحل شريك"],
       ["إجمالي السيولة النقدية والرقمية", totalLiquidAssets, "الدرج + المحافظ + الماكينات"],
@@ -149,7 +149,7 @@ export const ReportsPage: React.FC = () => {
           <div className="text-2xl font-black text-slate-900 font-mono">
             {metrics.totalContractsValue.toLocaleString('en-US')} <span className="text-xs font-bold text-slate-500">ج.م</span>
           </div>
-          <div className="text-[11px] text-slate-400">من {metrics.activeContractsCount || 165} عقد قسط</div>
+          <div className="text-[11px] text-slate-400">من {metrics.activeContractsCount} عقد قسط</div>
         </div>
 
         {/* Collected */}
@@ -225,7 +225,7 @@ export const ReportsPage: React.FC = () => {
               <tr className="hover:bg-slate-50 transition">
                 <td className="p-3.5 font-bold text-slate-900 flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-purple-600" />
-                  أرصدة خطوط فودافون كاش (6 خطوط)
+                  أرصدة خطوط فودافون كاش
                 </td>
                 <td className="p-3.5 text-slate-500">محافظ إلكترونية سائلة</td>
                 <td className="p-3.5 font-black text-slate-900 text-sm font-mono">
@@ -261,11 +261,11 @@ export const ReportsPage: React.FC = () => {
               <tr className="hover:bg-slate-50 transition">
                 <td className="p-3.5 font-bold text-slate-900 flex items-center gap-2">
                   <Store className="w-4 h-4 text-slate-700" />
-                  عملاء الأجل السريع (75 محل شريك)
+                  عملاء الأجل السريع
                 </td>
                 <td className="p-3.5 text-slate-500">حسابات تحويل وشحن أجل</td>
                 <td className="p-3.5 font-black text-slate-900 text-sm">
-                  {fastCreditTotal.toLocaleString('ar-EG')} ج.م
+                  {fastCreditTotal.toLocaleString('en-US')} ج.م
                 </td>
                 <td className="p-3.5"><span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-bold">حسابات دورية</span></td>
               </tr>
