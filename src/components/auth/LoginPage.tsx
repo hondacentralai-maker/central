@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, Lock, Mail, Eye, EyeOff, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Smartphone, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 
 interface LoginPageProps {
@@ -7,8 +7,8 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const [identifier, setIdentifier] = useState('admin@central.local');
-  const [password, setPassword] = useState('123456');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +20,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      // 1. Try Supabase Auth
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: identifier,
         password: password,
@@ -32,30 +31,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           name: data.user.user_metadata?.full_name || 'مدير النظام',
           role: data.user.user_metadata?.role || 'admin',
         };
-        if (rememberMe) {
-          localStorage.setItem('central_user_session', JSON.stringify(userInfo));
-        }
         onLoginSuccess(userInfo);
         return;
       }
 
-      // 2. Multi-device Store Account Fallback (if user not registered in cloud auth yet)
-      if (password.length >= 4) {
-        const role = identifier.includes('cashier') ? 'cashier' : 'admin';
-        const roleName = role === 'admin' ? 'المدير العام' : 'الكاشير والمحصل';
-        const userInfo = {
-          email: identifier,
-          name: roleName,
-          role: role,
-        };
-        if (rememberMe) {
-          localStorage.setItem('central_user_session', JSON.stringify(userInfo));
-        }
-        onLoginSuccess(userInfo);
-        return;
-      }
-
-      setError('يرجى إدخال كلمة مرور صحيحة (4 أحرف على الأقل)');
+      setError(authError?.message || 'بيانات الدخول غير صحيحة. استخدم حسابًا مفعّلًا من إدارة النظام.');
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
     } finally {
@@ -64,7 +44,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4 selection:bg-primary selection:text-white font-sans" dir="rtl">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 selection:bg-primary selection:text-white font-sans" dir="rtl">
       <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -89,15 +69,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email / Username */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">البريد الإلكتروني أو اسم المستخدم</label>
+            <label className="block text-xs font-bold text-slate-700">البريد الإلكتروني</label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="email"
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="admin@central.local أو cashier"
+                placeholder="name@example.com"
                 className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
               />
             </div>
@@ -137,7 +117,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               />
               <span>تذكر تسجيل الدخول على هذا الجهاز</span>
             </label>
-            <span className="text-slate-400 text-[11px]">جلسة نشطة دائماً</span>
+             <span className="text-slate-400 text-[11px]">تسجيل آمن عبر Supabase</span>
           </div>
 
           <button
