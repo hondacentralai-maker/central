@@ -7,7 +7,6 @@ import {
   AlertCircle, 
   RefreshCw, 
   Edit3, 
-  Trash2, 
   Power, 
   Smartphone, 
   PlusCircle, 
@@ -17,17 +16,12 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { api } from '../services/api';
-import { POSMachine } from '../types';
+import { POSMachine, Profile } from '../types';
 
-export const POSMachinesPage: React.FC = () => {
-  const initialDefaultMachines: POSMachine[] = [
-    { id: 'pos1', name: 'ماكينة فوري (Fawry)', machine_number: 'فوري-8833', current_balance: 8833, is_active: true },
-    { id: 'pos2', name: 'ماكينة أمان (Aman)', machine_number: 'أمان-4199', current_balance: 4199, is_active: true },
-    { id: 'pos3', name: 'ماكينة بساطة (Basata)', machine_number: 'بساطة-9150', current_balance: 9150, is_active: true },
-    { id: 'pos4', name: 'ماكينة أمان تاتش (Aman Touch)', machine_number: 'أمان-2909', current_balance: 2909, is_active: true },
-  ];
+export const POSMachinesPage: React.FC<{ profile: Profile }> = ({ profile }) => {
+  const canManage = ['admin', 'manager'].includes(profile.role);
 
-  const [machines, setMachines] = useState<POSMachine[]>(initialDefaultMachines);
+  const [machines, setMachines] = useState<POSMachine[]>([]);
   const [selectedMachineForRecharge, setSelectedMachineForRecharge] = useState<POSMachine | null>(null);
   const [rechargeAmt, setRechargeAmt] = useState('');
   
@@ -36,14 +30,12 @@ export const POSMachinesPage: React.FC = () => {
   const [newMachineName, setNewMachineName] = useState('');
   const [newMachineNumber, setNewMachineNumber] = useState('');
   const [newMachineProvider, setNewMachineProvider] = useState('فوري');
-  const [newMachineBalance, setNewMachineBalance] = useState('');
 
   // Edit Machine Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState<POSMachine | null>(null);
   const [editName, setEditName] = useState('');
   const [editNumber, setEditNumber] = useState('');
-  const [editBalance, setEditBalance] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,116 +48,63 @@ export const POSMachinesPage: React.FC = () => {
 
   const persistMachines = (updatedList: POSMachine[]) => {
     setMachines(updatedList);
-    try {
-      localStorage.setItem('central_pos_machines', JSON.stringify(updatedList));
-    } catch {}
   };
 
   const loadMachines = async () => {
     setIsLoading(true);
     try {
-      // 1. Check local storage
-      const saved = localStorage.getItem('central_pos_machines');
-      if (saved) {
-        try {
-          const list = JSON.parse(saved);
-          if (list && list.length > 0) {
-            setMachines(list);
-            setIsLoading(false);
-            return;
-          }
-        } catch {}
-      }
-
-      // 2. Try Supabase
       const data = await api.getPOSMachines();
-      if (data && data.length > 0) {
-        persistMachines(data);
-      } else {
-        persistMachines(initialDefaultMachines);
-      }
-    } catch {
-      persistMachines(initialDefaultMachines);
+      persistMachines(data);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'تعذر تحميل الماكينات من قاعدة البيانات.');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Add New Machine
-  const handleAddMachine = (e: React.FormEvent) => {
+  const handleAddMachine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMachineName.trim()) return;
-
-    const initialBal = parseFloat(newMachineBalance) || 0;
-    const newMach: POSMachine = {
-      id: `pos-${Date.now()}`,
-      name: newMachineName.trim(),
-      machine_number: newMachineNumber.trim() || `POS-${Math.floor(1000 + Math.random() * 9000)}`,
-      current_balance: initialBal,
-      is_active: true
-    };
-
-    const updated = [...machines, newMach];
-    persistMachines(updated);
-    setIsAddModalOpen(false);
-    setNewMachineName('');
-    setNewMachineNumber('');
-    setNewMachineBalance('');
-    setSuccessMsg(`تمت إضافة الماكينة (${newMach.name}) بنجاح برصيد ${initialBal.toLocaleString('ar-EG')} ج.م.`);
+    if (!profile.organization_id || !newMachineName.trim()) return;
+    setIsSubmitting(true); setErrorMsg('');
+    try {
+      const saved = await api.createPOSMachine({ organizationId: profile.organization_id, name: `${newMachineName.trim()} (${newMachineProvider})`, machineNumber: newMachineNumber });
+      setMachines(current => [saved, ...current]);
+      setIsAddModalOpen(false); setNewMachineName(''); setNewMachineNumber('');
+      setSuccessMsg(`تمت إضافة الماكينة (${saved.name}) برصيد افتتاحي صفر. استخدم التحويل لتغذية الرصيد.`);
+    } catch (err: any) { setErrorMsg(err?.message || 'تعذر إضافة الماكينة.'); }
+    finally { setIsSubmitting(false); }
   };
 
   // Open Edit Modal
   const openEditModal = (machine: POSMachine) => {
     setEditingMachine(machine);
     setEditName(machine.name);
-    setEditNumber(machine.machine_number);
-    setEditBalance(String(machine.current_balance));
+    setEditNumber(machine.machine_number || '');
     setIsEditModalOpen(true);
   };
 
   // Save Edit Machine
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingMachine || !editName.trim()) return;
-
-    const newBal = parseFloat(editBalance) !== undefined ? (parseFloat(editBalance) || 0) : editingMachine.current_balance;
-
-    const updated = machines.map(m => {
-      if (m.id === editingMachine.id) {
-        return {
-          ...m,
-          name: editName.trim(),
-          machine_number: editNumber.trim() || m.machine_number,
-          current_balance: newBal
-        };
-      }
-      return m;
-    });
-
-    persistMachines(updated);
-    setIsEditModalOpen(false);
-    setEditingMachine(null);
-    setSuccessMsg(`تم تحديث بيانات الماكينة (${editName}) بنجاح.`);
+    if (!profile.organization_id || !editingMachine || !editName.trim()) return;
+    setIsSubmitting(true); setErrorMsg('');
+    try {
+      const saved = await api.updatePOSMachine(editingMachine.id, profile.organization_id, { name: editName, machine_number: editNumber });
+      setMachines(current => current.map(machine => machine.id === saved.id ? saved : machine));
+      setIsEditModalOpen(false); setEditingMachine(null); setSuccessMsg(`تم تحديث بيانات الماكينة (${saved.name}).`);
+    } catch (err: any) { setErrorMsg(err?.message || 'تعذر تحديث الماكينة.'); }
+    finally { setIsSubmitting(false); }
   };
 
   // Toggle Active Status
-  const handleToggleActive = (machineId: string) => {
-    const updated = machines.map(m => {
-      if (m.id === machineId) {
-        return { ...m, is_active: !m.is_active };
-      }
-      return m;
-    });
-    persistMachines(updated);
-  };
-
-  // Delete Machine
-  const handleDeleteMachine = (machine: POSMachine) => {
-    if (!window.confirm(`هل أنت متأكد من رغبتك في حذف ${machine.name} نهائياً؟`)) return;
-
-    const updated = machines.filter(m => m.id !== machine.id);
-    persistMachines(updated);
-    setSuccessMsg(`تم حذف ${machine.name} من قائمة الماكينات.`);
+  const handleToggleActive = async (machine: POSMachine) => {
+    if (!profile.organization_id) return;
+    try {
+      const saved = await api.updatePOSMachine(machine.id, profile.organization_id, { ...machine, is_active: !machine.is_active });
+      setMachines(current => current.map(item => item.id === saved.id ? saved : item));
+      setSuccessMsg(saved.is_active ? 'تم تفعيل الماكينة.' : 'تم تعطيل الماكينة مع الاحتفاظ بسجلها المالي.');
+    } catch (err: any) { setErrorMsg(err?.message || 'تعذر تغيير حالة الماكينة.'); }
   };
 
   // Feed / Recharge Balance
@@ -182,36 +121,22 @@ export const POSMachinesPage: React.FC = () => {
       const treasuries = await api.getTreasuries();
       const drawer = treasuries.find(t => t.treasury_type === 'drawer') || treasuries[0];
 
-      if (drawer) {
-        await api.transferFunds({
+      if (!drawer) throw new Error('لا توجد خزينة فعالة لتغذية الماكينة.');
+      await api.transferFunds({
           sourceType: 'treasury',
           sourceId: drawer.id,
           targetType: 'pos',
           targetId: selectedMachineForRecharge.id,
           amount: num,
           notes: `شحن وتغذية ${selectedMachineForRecharge.name} من درج الكاشير`,
-        });
-      }
+      });
 
-      const updated = machines.map(m => 
-        m.id === selectedMachineForRecharge.id 
-          ? { ...m, current_balance: m.current_balance + num } 
-          : m
-      );
-      persistMachines(updated);
-      setSuccessMsg(`تم شحن ${selectedMachineForRecharge.name} بمبلغ ${num.toLocaleString('ar-EG')} ج.م وخصمها من الدرج.`);
+      setSuccessMsg(`تم اعتماد شحن ${selectedMachineForRecharge.name} بمبلغ ${num.toLocaleString('en-US')} ج.م وخصمه من الدرج.`);
+      await loadMachines();
       setSelectedMachineForRecharge(null);
       setRechargeAmt('');
-    } catch {
-      const updated = machines.map(m => 
-        m.id === selectedMachineForRecharge.id 
-          ? { ...m, current_balance: m.current_balance + num } 
-          : m
-      );
-      persistMachines(updated);
-      setSuccessMsg(`تم تحديث رصيد ${selectedMachineForRecharge.name} بمبلغ ${num.toLocaleString('ar-EG')} ج.م.`);
-      setSelectedMachineForRecharge(null);
-      setRechargeAmt('');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'فشل الشحن ولم يتم تعديل الرصيد.');
     } finally {
       setIsSubmitting(false);
     }
@@ -237,7 +162,8 @@ export const POSMachinesPage: React.FC = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-primary/20 transition active:scale-95"
+            disabled={!canManage}
+            className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-primary/20 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <PlusCircle className="w-4 h-4" />
             <span>إضافة ماكينة جديدة</span>
@@ -354,13 +280,15 @@ export const POSMachinesPage: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEditModal(machine)}
+                      disabled={!canManage}
                       title="تعديل اسم وبيانات الماكينة"
                       className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleToggleActive(machine.id)}
+                      onClick={() => void handleToggleActive(machine)}
+                      disabled={!canManage}
                       title={machine.is_active ? 'تعطيل الماكينة' : 'تنشيط الماكينة'}
                       className={`p-1.5 rounded-lg transition ${
                         machine.is_active 
@@ -369,13 +297,6 @@ export const POSMachinesPage: React.FC = () => {
                       }`}
                     >
                       <Power className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMachine(machine)}
-                      title="حذف الماكينة"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -464,16 +385,7 @@ export const POSMachinesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold block text-slate-700 mb-1">الرصيد الافتتاحي (ج.م)</label>
-                <input
-                  type="number"
-                  value={newMachineBalance}
-                  onChange={(e) => setNewMachineBalance(e.target.value)}
-                  placeholder="0"
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-primary"
-                />
-              </div>
+              <p className="rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500">يبدأ الرصيد بصفر. استخدم زر التغذية لتنفيذ تحويل مالي موثق من الخزينة.</p>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
@@ -533,15 +445,7 @@ export const POSMachinesPage: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="font-bold block text-slate-700 mb-1">الرصيد المالي الحالي (ج.م)</label>
-                <input
-                  type="number"
-                  value={editBalance}
-                  onChange={(e) => setEditBalance(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-black text-slate-900"
-                />
-              </div>
+              <p className="rounded-xl bg-amber-50 p-3 text-[11px] text-amber-800">الرصيد المالي لا يتم تعديله يدويًا؛ تعديله يكون من خلال حركات التغذية المعتمدة.</p>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
