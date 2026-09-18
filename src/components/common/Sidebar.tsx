@@ -8,10 +8,8 @@ import {
   Layers, 
   Store, 
   Truck, 
-  FileText, 
+  FileText,
   BarChart3, 
-  Database,
-  Sparkles,
   X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -26,9 +24,7 @@ export type NavTab =
   | 'pos' 
   | 'fast_credit' 
   | 'suppliers' 
-  | 'reports' 
-  | 'migration'
-  | 'tester';
+  | 'reports';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -56,15 +52,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'fast_credit' as NavTab, label: 'عملاء الأجل السريع', icon: Store },
     { id: 'suppliers' as NavTab, label: 'الموردين والمشتريات', icon: Truck },
     { id: 'reports' as NavTab, label: 'التقارير المالية', icon: BarChart3 },
-    { id: 'migration' as NavTab, label: 'بيانات الإكسل المرحّلة', icon: Database, badge: 'معاينة' },
-    { id: 'tester' as NavTab, label: 'فحص واختبار النظام', icon: Sparkles, badge: 'تيستر شامل' },
   ];
 
   const allowedTabsByRole: Record<string, NavTab[]> = {
     admin: navItems.map((item) => item.id),
     manager: navItems.map((item) => item.id),
-    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'closing', 'wallets', 'pos', 'tester'],
-    collector: ['dashboard', 'installments', 'customers', 'tester'],
+    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'closing', 'wallets', 'pos'],
+    collector: ['dashboard', 'installments', 'customers'],
     sales: ['dashboard', 'customers', 'installments'],
     reports: ['dashboard', 'reports'],
   };
