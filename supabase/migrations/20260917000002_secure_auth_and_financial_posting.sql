@@ -232,10 +232,44 @@ BEGIN
 END;
 $$;
 
+CREATE POLICY cash_wallets_managers_can_insert
+    ON public.cash_wallets FOR INSERT TO authenticated
+    WITH CHECK (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
+CREATE POLICY cash_wallets_managers_can_update
+    ON public.cash_wallets FOR UPDATE TO authenticated
+    USING (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']))
+    WITH CHECK (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
+CREATE POLICY pos_machines_managers_can_insert
+    ON public.pos_machines FOR INSERT TO authenticated
+    WITH CHECK (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
+CREATE POLICY pos_machines_managers_can_update
+    ON public.pos_machines FOR UPDATE TO authenticated
+    USING (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']))
+    WITH CHECK (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
 -- Only administrators and managers may delete master records, and only inside
 -- their own organization.
 CREATE POLICY customers_managers_can_delete
     ON public.customers FOR DELETE TO authenticated
+    USING (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
+CREATE POLICY fast_credit_accounts_managers_can_delete
+    ON public.fast_credit_accounts FOR DELETE TO authenticated
+    USING (organization_id = public.current_organization_id()
+       AND public.has_any_role(ARRAY['admin', 'manager']));
+
+CREATE POLICY suppliers_managers_can_delete
+    ON public.suppliers FOR DELETE TO authenticated
     USING (organization_id = public.current_organization_id()
        AND public.has_any_role(ARRAY['admin', 'manager']));
 
