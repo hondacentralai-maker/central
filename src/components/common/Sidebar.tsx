@@ -10,6 +10,7 @@ import {
   Truck, 
   FileText,
   BarChart3, 
+  BadgeCheck,
   X
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -24,7 +25,8 @@ export type NavTab =
   | 'pos' 
   | 'fast_credit' 
   | 'suppliers' 
-  | 'reports';
+  | 'reports'
+  | 'subscription';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -52,15 +54,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'fast_credit' as NavTab, label: 'عملاء الأجل السريع', icon: Store },
     { id: 'suppliers' as NavTab, label: 'الموردين والمشتريات', icon: Truck },
     { id: 'reports' as NavTab, label: 'التقارير المالية', icon: BarChart3 },
+    { id: 'subscription' as NavTab, label: 'الاشتراك', icon: BadgeCheck, badge: 'جديد' },
   ];
 
   const allowedTabsByRole: Record<string, NavTab[]> = {
     admin: navItems.map((item) => item.id),
     manager: navItems.map((item) => item.id),
-    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'closing', 'wallets', 'pos'],
-    collector: ['dashboard', 'installments', 'customers'],
-    sales: ['dashboard', 'customers', 'installments'],
-    reports: ['dashboard', 'reports'],
+    cashier: ['dashboard', 'installments', 'customers', 'treasury', 'closing', 'wallets', 'pos', 'subscription'],
+    collector: ['dashboard', 'installments', 'customers', 'subscription'],
+    sales: ['dashboard', 'customers', 'installments', 'subscription'],
+    reports: ['dashboard', 'reports', 'subscription'],
   };
   const visibleItems = navItems.filter((item) => (allowedTabsByRole[role] || []).includes(item.id));
 
