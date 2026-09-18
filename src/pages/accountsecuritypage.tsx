@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
-  Copy,
   Eye,
   EyeOff,
   History,
@@ -30,7 +29,6 @@ interface SecuritySettings {
   recovery_email: string | null;
   recovery_phone: string | null;
   pin_set_at: string | null;
-  recovery_codes_generated_at: string | null;
 }
 
 interface SecurityActivity {
@@ -50,7 +48,6 @@ const emptySettings: SecuritySettings = {
   recovery_email: null,
   recovery_phone: null,
   pin_set_at: null,
-  recovery_codes_generated_at: null,
 };
 
 const eventLabels: Record<string, string> = {
@@ -58,7 +55,6 @@ const eventLabels: Record<string, string> = {
   profile_updated: 'تم تحديث بيانات الحساب',
   recovery_updated: 'تم تحديث بيانات الاسترداد',
   pin_updated: 'تم تحديث PIN الإضافي',
-  recovery_codes_generated: 'تم إنشاء رموز استرداد جديدة',
   mfa_enabled: 'تم تفعيل التحقق بخطوتين',
   mfa_disabled: 'تم إيقاف التحقق بخطوتين',
   global_sign_out: 'تم تسجيل الخروج من كل الجلسات',
@@ -73,13 +69,6 @@ const hashValue = async (value: string) => {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 };
-
-const createRecoveryCodes = () => Array.from({ length: 8 }, () => {
-  const bytes = new Uint8Array(10);
-  crypto.getRandomValues(bytes);
-  const value = Array.from(bytes).map((byte) => (byte % 36).toString(36)).join('').toUpperCase();
-  return `${value.slice(0, 5)}-${value.slice(5)}`;
-});
 
 const isMobileDevice = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
@@ -101,7 +90,6 @@ export const AccountSecurityPage: React.FC<AccountSecurityPageProps> = ({ profil
   const [showPin, setShowPin] = useState(false);
   const [enrollment, setEnrollment] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
   const [mfaCode, setMfaCode] = useState('');
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [busyAction, setBusyAction] = useState('');
   const [message, setMessage] = useState('');
@@ -124,7 +112,7 @@ export const AccountSecurityPage: React.FC<AccountSecurityPageProps> = ({ profil
     setError('');
     const [{ data: userData }, { data: settingsData, error: settingsError }, { data: activityData }, { data: factorData }] = await Promise.all([
       supabase.auth.getUser(),
-      supabase.from('account_security_settings').select('recovery_email, recovery_phone, pin_set_at, recovery_codes_generated_at').maybeSingle(),
+      supabase.from('account_security_settings').select('recovery_email, recovery_phone, pin_set_at').maybeSingle(),
       supabase.from('security_activity').select('id, event_type, created_at').order('created_at', { ascending: false }).limit(8),
       supabase.auth.mfa.listFactors(),
     ]);
@@ -232,23 +220,6 @@ export const AccountSecurityPage: React.FC<AccountSecurityPageProps> = ({ profil
       setSettings((current) => ({ ...current, pin_set_at: new Date().toISOString() }));
       await logActivity('pin_updated');
       showResult('تم تحديث PIN كعامل أمان إضافي.');
-    }
-    setBusyAction('');
-  };
-
-  const generateCodes = async () => {
-    setBusyAction('codes');
-    setMessage('');
-    setError('');
-    const codes = createRecoveryCodes();
-    const hashes = await Promise.all(codes.map(hashValue));
-    const { error: saveError } = await supabase.rpc('save_recovery_code_hashes', { p_hashes: hashes });
-    if (saveError) setError(saveError.message || 'تعذر إنشاء رموز الاسترداد.');
-    else {
-      setRecoveryCodes(codes);
-      setSettings((current) => ({ ...current, recovery_codes_generated_at: new Date().toISOString() }));
-      await logActivity('recovery_codes_generated');
-      showResult('احفظ هذه الرموز في مكان آمن. لن نعرضها مرة أخرى بعد مغادرة الصفحة.');
     }
     setBusyAction('');
   };
@@ -381,13 +352,6 @@ export const AccountSecurityPage: React.FC<AccountSecurityPageProps> = ({ profil
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-amber-50 p-2 text-amber-700"><KeyRound className="h-5 w-5" /></span><div><h3 className="font-black text-slate-900">رموز الاسترداد</h3><p className="text-xs text-slate-500">رموز تستخدم مرة واحدة عند فقدان عامل التحقق</p></div></div>
-          {recoveryCodes.length > 0 && <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3">{recoveryCodes.map((code) => <code key={code} className="rounded-lg bg-white px-2 py-1.5 text-center font-mono text-xs font-bold text-slate-800">{code}</code>)}</div>}
-          <div className="flex items-center justify-between gap-3"><span className="text-[11px] text-slate-400">{settings.recovery_codes_generated_at ? `آخر إنشاء: ${formatDate(settings.recovery_codes_generated_at)}` : 'لم تُنشأ رموز بعد'}</span><button type="button" onClick={() => void generateCodes()} disabled={busyAction === 'codes'} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">{busyAction === 'codes' && <Loader2 className="h-4 w-4 animate-spin" />} إنشاء رموز جديدة</button></div>
-          {recoveryCodes.length > 0 && <button type="button" onClick={() => void navigator.clipboard?.writeText(recoveryCodes.join('\n'))} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-primary hover:underline"><Copy className="h-3.5 w-3.5" /> نسخ الرموز</button>}
-        </div>
-
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3"><span className="rounded-xl bg-cyan-50 p-2 text-cyan-700">{isMobileDevice() ? <Smartphone className="h-5 w-5" /> : <Laptop className="h-5 w-5" />}</span><div><h3 className="font-black text-slate-900">الأجهزة والجلسات</h3><p className="text-xs text-slate-500">الجلسة الحالية وتسجيل الخروج العام</p></div></div>
           <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3"><div><p className="text-xs font-black text-slate-800">{currentDeviceLabel} • الجلسة الحالية</p><p className="mt-1 text-[11px] text-slate-500">آخر دخول: {formatDate(lastSignInAt)}</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-700">نشطة</span></div>
