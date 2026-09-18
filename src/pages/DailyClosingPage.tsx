@@ -13,6 +13,12 @@ import {
 import { api } from '../services/api';
 import { Treasury, DailyClosing } from '../types';
 
+const closingStatusLabel: Record<DailyClosing['status'], string> = {
+  balanced: 'متطابق',
+  shortage: 'عجز',
+  surplus: 'زيادة',
+};
+
 export const DailyClosingPage: React.FC = () => {
   const [treasury, setTreasury] = useState<Treasury | null>(null);
   const [openingBalance, setOpeningBalance] = useState<number>(0);
@@ -321,6 +327,55 @@ export const DailyClosingPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="closing-history-title">
+        <div className="mb-4 flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 id="closing-history-title" className="font-bold text-slate-900 text-sm">سجل التقفيلات السابقة</h3>
+            <p className="text-xs text-slate-400">سجل محفوظ في قاعدة البيانات لهذه المؤسسة والدرج فقط</p>
+          </div>
+          <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-primary">{pastClosings.length} تقفيل</span>
+        </div>
+
+        {pastClosings.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+            لا يوجد تقفيل محفوظ حتى الآن. سيظهر هنا بعد اعتماد أول تقفيل يومي.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-right text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-500">
+                  <th className="px-3 py-3 font-bold">التاريخ</th>
+                  <th className="px-3 py-3 font-bold">رقم التقفيل</th>
+                  <th className="px-3 py-3 font-bold">الافتتاحي</th>
+                  <th className="px-3 py-3 font-bold">المتوقع</th>
+                  <th className="px-3 py-3 font-bold">الفعلي</th>
+                  <th className="px-3 py-3 font-bold">الفرق</th>
+                  <th className="px-3 py-3 font-bold">الحالة</th>
+                  <th className="px-3 py-3 font-bold">ملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pastClosings.map((closing) => (
+                  <tr key={closing.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-3 py-3 font-semibold text-slate-700">{new Date(closing.closing_date).toLocaleDateString('ar-EG')}</td>
+                    <td className="whitespace-nowrap px-3 py-3 font-mono font-bold text-slate-700">{closing.closing_number}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{Number(closing.opening_balance || 0).toLocaleString('en-US')} ج.م</td>
+                    <td className="whitespace-nowrap px-3 py-3">{Number(closing.expected_balance || 0).toLocaleString('en-US')} ج.م</td>
+                    <td className="whitespace-nowrap px-3 py-3">{Number(closing.actual_cash || 0).toLocaleString('en-US')} ج.م</td>
+                    <td className={`whitespace-nowrap px-3 py-3 font-black ${closing.difference < 0 ? 'text-rose-700' : closing.difference > 0 ? 'text-blue-700' : 'text-emerald-700'}`}>
+                      {closing.difference > 0 ? '+' : ''}{Number(closing.difference || 0).toLocaleString('en-US')} ج.م
+                    </td>
+                    <td className="px-3 py-3"><span className={`rounded-full px-2 py-1 font-bold ${closing.status === 'balanced' ? 'bg-emerald-50 text-emerald-700' : closing.status === 'shortage' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>{closingStatusLabel[closing.status] || closing.status}</span></td>
+                    <td className="max-w-[180px] truncate px-3 py-3 text-slate-500" title={closing.notes || ''}>{closing.notes || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* Official Printable Closing Statement (Hidden on screen, visible on print) */}
       <div className="hidden print:block p-8 bg-white text-slate-900 font-sans" dir="rtl">
