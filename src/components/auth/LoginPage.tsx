@@ -47,8 +47,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             data: {
               full_name: fullName.trim(),
               phone: phone.trim(),
-              role: 'cashier',
-              is_active: false,
             },
           },
         });
@@ -62,7 +60,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setPassword('');
         setConfirmPassword('');
         setMode('login');
-        setNotice('تم إرسال طلب الحساب. يحتاج المدير إلى تفعيله قبل استخدام النظام.');
+        setNotice(
+          data.session
+            ? 'تم إنشاء الحساب وتفعيله تلقائيًا. لديك فترة سماح مجانية لمدة شهر.'
+            : 'تم إنشاء الحساب. افتح رسالة تأكيد البريد الإلكتروني، ثم سجّل الدخول. لديك فترة سماح مجانية لمدة شهر.'
+        );
         return;
       }
 
@@ -81,7 +83,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      setError(authError?.message || 'بيانات الدخول غير صحيحة. استخدم حسابًا مفعّلًا من إدارة النظام.');
+      const normalizedAuthError = (authError?.message || '').toLowerCase();
+      setError(
+        normalizedAuthError.includes('email not confirmed')
+          ? 'البريد الإلكتروني غير مؤكد. افتح رسالة التأكيد المرسلة إلى بريدك ثم حاول تسجيل الدخول.'
+          : authError?.message || 'بيانات الدخول غير صحيحة أو انتهت فترة السماح.'
+      );
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
     } finally {
