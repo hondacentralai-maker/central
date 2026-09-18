@@ -15,7 +15,7 @@ import { Treasury, DailyClosing } from '../types';
 
 export const DailyClosingPage: React.FC = () => {
   const [treasury, setTreasury] = useState<Treasury | null>(null);
-  const [openingBalance, setOpeningBalance] = useState<number>(10000);
+  const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [totalCollections, setTotalCollections] = useState<number>(0);
   const [totalCashSales, setTotalCashSales] = useState<number>(0);
   const [totalWalletNet, setTotalWalletNet] = useState<number>(0);
@@ -37,31 +37,29 @@ export const DailyClosingPage: React.FC = () => {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      const [tList, expList, closingsList] = await Promise.all([
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const [tList, metrics, closingsList] = await Promise.all([
         api.getTreasuries(),
-        api.getExpenses(),
+        api.getDailyClosingMetrics(todayStr),
         api.getDailyClosings(),
       ]);
 
       const drawer = tList.find(t => t.treasury_type === 'drawer') || tList[0];
       if (drawer) {
         setTreasury(drawer);
-        setOpeningBalance(Number(drawer.opening_balance || 10000));
+        setOpeningBalance(Number(drawer.opening_balance || 0));
         // Default actual cash to current drawer balance for convenience
         setActualCash(String(drawer.current_balance || 0));
+      } else {
+        setTreasury(null);
+        setOpeningBalance(0);
+        setActualCash('0');
       }
 
-      // Calculate today's expenses
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayExpenses = expList
-        .filter(e => (e.expense_date || '').startsWith(todayStr))
-        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      setTotalExpenses(todayExpenses || 450);
-
-      // Estimate / load today's collections & sales
-      setTotalCollections(14500);
-      setTotalCashSales(4200);
-      setTotalWalletNet(1850);
+      setTotalCollections(metrics.totalCollections);
+      setTotalCashSales(metrics.totalCashSales);
+      setTotalWalletNet(metrics.totalWalletNet);
+      setTotalExpenses(metrics.totalExpenses);
 
       setPastClosings(closingsList);
     } catch (err: any) {
@@ -144,7 +142,7 @@ export const DailyClosingPage: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <div className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-primary border border-blue-200">
-            تاريخ اليومية: {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            تاريخ اليومية: {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
         </div>
       </div>
