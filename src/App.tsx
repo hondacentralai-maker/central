@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 import { Header } from './components/common/Header';
@@ -23,6 +23,12 @@ import type { Contract, Profile } from './types';
 
 type AuthStatus = 'checking' | 'signed-out' | 'profile-error' | 'ready';
 
+const CLIENT_CACHE_KEYS = ['central_customers_state', 'central_custom_customers', 'central_payment_promises'];
+
+const clearClientCache = () => {
+  CLIENT_CACHE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+};
+
 const getFirstAllowedTab = (role: string): NavTab => {
   if (role === 'collector') return 'installments';
   if (role === 'reports') return 'reports';
@@ -41,6 +47,7 @@ export default function App() {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [targetCustomerForCustomersPage, setTargetCustomerForCustomersPage] = useState<string | null>(null);
+  const lastUserId = useRef<string | null>(null);
 
   const handleNavigateWithTarget = (tab: NavTab, customerTarget?: string) => {
     setActiveTab(tab);
@@ -55,6 +62,9 @@ export default function App() {
   };
 
   const hydrateSession = useCallback(async (nextSession: Session | null) => {
+    const nextUserId = nextSession?.user.id ?? null;
+    if (lastUserId.current !== nextUserId) clearClientCache();
+    lastUserId.current = nextUserId;
     setSession(nextSession);
     setProfile(null);
     setProfileError('');
@@ -109,6 +119,7 @@ export default function App() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    clearClientCache();
     setSession(null);
     setProfile(null);
     setAuthStatus('signed-out');
