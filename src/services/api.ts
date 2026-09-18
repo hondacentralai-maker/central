@@ -453,6 +453,32 @@ export const api = {
   },
 
   // 12. Daily Closing
+  async getDailyClosingMetrics(date: string) {
+    const start = `${date}T00:00:00.000Z`;
+    const end = `${date}T23:59:59.999Z`;
+    const [collections, sales, wallets, expenses] = await Promise.all([
+      supabase.from('collections').select('amount').eq('collection_date', date),
+      supabase.from('sales').select('paid_amount, total_amount, sale_type, status').gte('created_at', start).lte('created_at', end),
+      supabase.from('wallet_transactions').select('transaction_type, amount').gte('created_at', start).lte('created_at', end),
+      supabase.from('expenses').select('amount').eq('expense_date', date),
+    ]);
+
+    const firstError = collections.error || sales.error || wallets.error || expenses.error;
+    if (firstError) throw firstError;
+
+    return {
+      totalCollections: (collections.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      totalCashSales: (sales.data || [])
+        .filter(row => row.sale_type === 'cash' && row.status !== 'cancelled')
+        .reduce((sum, row) => sum + Number(row.paid_amount ?? row.total_amount ?? 0), 0),
+      totalWalletNet: (wallets.data || []).reduce((sum, row) => {
+        const amount = Number(row.amount || 0);
+        return sum + (row.transaction_type === 'cash_out' ? amount : -amount);
+      }, 0),
+      totalExpenses: (expenses.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    };
+  },
+
   async getDailyClosings(): Promise<DailyClosing[]> {
     const { data, error } = await supabase.from('daily_closings').select('*').order('closing_date', { ascending: false });
     if (error) throw error;
